@@ -26,7 +26,7 @@ const Login = () => {
         localStorage.setItem('userName', response.user.name);
       }
       toast.success('Successfully logged in!');
-      navigate('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

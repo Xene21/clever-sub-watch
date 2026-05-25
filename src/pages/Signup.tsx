@@ -27,7 +27,7 @@ const Signup = () => {
         localStorage.setItem('userName', response.user.name);
       }
       toast.success('Account created successfully!');
-      navigate('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

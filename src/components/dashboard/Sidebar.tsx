@@ -36,7 +36,7 @@ const DashboardSidebar = () => {
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
-      navigate('/');
+      window.location.href = '/';
     }
   };
 
