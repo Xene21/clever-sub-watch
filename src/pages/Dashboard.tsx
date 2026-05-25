@@ -32,8 +32,9 @@ const Dashboard = () => {
     retry: false,
     staleTime: 1000 * 60 * 5,
   });
-  const fullName = userData?.user?.name ?? 'Dashboard';
-  const firstName = fullName.split(' ')[0] || 'Dashboard';
+  const cachedName = localStorage.getItem('userName');
+  const fullName = userData?.user?.name || cachedName;
+  const firstName = fullName ? fullName.split(' ')[0] : 'back';
 
   const monthlySpend = calculateMonthlySpend(subscriptions);
   const monthlySpendChange = calculateMonthlySpendChange(subscriptions);

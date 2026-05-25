@@ -31,6 +31,7 @@ const DashboardSidebar = () => {
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout', {});
+      localStorage.removeItem('userName');
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout failed:', error);

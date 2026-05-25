@@ -21,7 +21,10 @@ const Login = () => {
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
+      if (response.user?.name) {
+        localStorage.setItem('userName', response.user.name);
+      }
       toast.success('Successfully logged in!');
       navigate('/dashboard');
     } catch (err) {

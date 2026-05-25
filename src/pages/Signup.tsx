@@ -22,7 +22,10 @@ const Signup = () => {
     setError('');
     setIsLoading(true);
     try {
-      await api.post('/auth/signup', { name, email, password });
+      const response = await api.post('/auth/signup', { name, email, password });
+      if (response.user?.name) {
+        localStorage.setItem('userName', response.user.name);
+      }
       toast.success('Account created successfully!');
       navigate('/dashboard');
     } catch (err) {
