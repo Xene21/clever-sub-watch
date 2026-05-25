@@ -1,9 +1,13 @@
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { mockSubscriptions, groupByCategory } from '@/lib/mock-data';
+import { groupByCategory, Subscription } from '@/lib/mock-data';
 
-const SpendingChart = () => {
-  const categoryGroups = groupByCategory(mockSubscriptions.filter(s => s.status === 'active'));
+interface SpendingChartProps {
+  subscriptions: Subscription[];
+}
+
+const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
+  const categoryGroups = groupByCategory(subscriptions.filter(s => s.status === 'active'));
   
   const data = Object.entries(categoryGroups).map(([category, subs]) => ({
     name: category,

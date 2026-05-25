@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plane, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -12,16 +14,26 @@ const Signup = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
-    // Simulate signup - will be replaced with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await api.post('/auth/signup', { name, email, password });
+      toast.success('Account created successfully!');
       navigate('/dashboard');
-    }, 1000);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Something went wrong');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -52,6 +64,7 @@ const Signup = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <div className="relative">

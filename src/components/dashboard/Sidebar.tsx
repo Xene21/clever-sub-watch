@@ -1,4 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { api } from '@/lib/api';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { 
   Plane, 
@@ -23,7 +25,19 @@ const navItems = [
 
 const DashboardSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout', {});
+      toast.success('Logged out successfully');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      navigate('/');
+    }
+  };
 
   return (
     <motion.aside
@@ -44,6 +58,7 @@ const DashboardSidebar = () => {
           {!collapsed && (
             <span className="font-display text-xl font-bold text-sidebar-foreground">SubPilot</span>
           )}
+          
         </Link>
         <button
           onClick={() => setCollapsed(!collapsed)}
@@ -85,13 +100,13 @@ const DashboardSidebar = () => {
 
       {/* User section */}
       <div className="p-4 border-t border-sidebar-border">
-        <Link
-          to="/"
-          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           {!collapsed && <span className="font-medium">Log out</span>}
-        </Link>
+        </button>
       </div>
     </motion.aside>
   );

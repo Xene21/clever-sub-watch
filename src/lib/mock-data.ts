@@ -8,6 +8,7 @@ export interface Subscription {
   status: 'active' | 'paused' | 'cancelled' | 'trial';
   category: string;
   color: string;
+  startDate?: string;
   history: { date: string; amount: number }[];
 }
 
@@ -142,12 +143,37 @@ export const mockSubscriptions: Subscription[] = [
     status: 'paused',
     category: 'Entertainment',
     color: '#113CCF',
+    startDate: '2023-10-18',
     history: [
       { date: '2023-11-18', amount: 13.99 },
       { date: '2023-10-18', amount: 13.99 },
     ],
   },
 ];
+
+export const calculateActiveSubscriptionsChange = (subscriptions: Subscription[]) => {
+  const currentActiveCount = subscriptions.filter(s => s.status === 'active').length;
+  
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+  
+  let lastMonthActiveCount = 0;
+  
+  subscriptions.forEach(sub => {
+    // If it's currently active and it started before this month began, it was probably active last month
+    if (sub.status === 'active' && sub.startDate) {
+      const startDate = new Date(sub.startDate);
+      if (startDate <= lastMonth) {
+        lastMonthActiveCount++;
+      }
+    } else if (sub.status === 'active' && !sub.startDate) {
+      // If we don't have a start date, assume it was active last month to prevent false spikes
+      lastMonthActiveCount++;
+    }
+  });
+
+  return currentActiveCount - lastMonthActiveCount;
+};
 
 export const calculateMonthlySpend = (subscriptions: Subscription[]) => {
   return subscriptions
@@ -161,6 +187,37 @@ export const calculateMonthlySpend = (subscriptions: Subscription[]) => {
       }
       return total + sub.amount;
     }, 0);
+};
+
+export const calculateMonthlySpendChange = (subscriptions: Subscription[]) => {
+  const currentSpend = calculateMonthlySpend(subscriptions);
+  
+  // Try to calculate last month's spend
+  let lastMonthSpend = 0;
+  const lastMonth = new Date();
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+  subscriptions.forEach(sub => {
+    // Check if we have explicit history for last month
+    if (sub.history && sub.history.length > 0) {
+      const lastMonthPayment = sub.history.find(h => {
+        const d = new Date(h.date);
+        return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear();
+      });
+      if (lastMonthPayment) {
+        lastMonthSpend += lastMonthPayment.amount;
+      }
+    } else if (sub.status === 'active') {
+      // If no history, assume active subscriptions cost the same last month
+      // (This will result in 0% change unless history explicitly shows a price increase/decrease)
+      if (sub.frequency === 'yearly') lastMonthSpend += sub.amount / 12;
+      else if (sub.frequency === 'weekly') lastMonthSpend += sub.amount * 4.33;
+      else lastMonthSpend += sub.amount;
+    }
+  });
+
+  if (lastMonthSpend === 0) return 0;
+  return ((currentSpend - lastMonthSpend) / lastMonthSpend) * 100;
 };
 
 export const calculateYearlySpend = (subscriptions: Subscription[]) => {

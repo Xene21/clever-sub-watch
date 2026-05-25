@@ -1,26 +1,38 @@
 import { useState } from 'react';
+import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plane, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { toast } from 'sonner';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     setIsLoading(true);
-    // Simulate login - will be replaced with actual auth
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await api.post('/auth/login', { email, password });
+      toast.success('Successfully logged in!');
       navigate('/dashboard');
-    }, 1000);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Invalid credentials');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -51,6 +63,7 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded-md">{error}</div>}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">

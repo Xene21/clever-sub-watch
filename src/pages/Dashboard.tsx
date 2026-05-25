@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import DashboardSidebar from '@/components/dashboard/Sidebar';
 import StatCard from '@/components/dashboard/StatCard';
 import SubscriptionCard from '@/components/dashboard/SubscriptionCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
 import SubscriptionDetail from '@/components/dashboard/SubscriptionDetail';
 import { 
-  mockSubscriptions, 
   calculateMonthlySpend, 
+  calculateMonthlySpendChange,
+  calculateActiveSubscriptionsChange,
   calculateYearlySpend,
   Subscription 
 } from '@/lib/mock-data';
-import { DollarSign, CreditCard, TrendingUp, AlertCircle } from 'lucide-react';
+import { api } from '@/lib/api';
+import { useSubscriptions } from '@/hooks/useSubscriptions';
+import { DollarSign, CreditCard, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, SlidersHorizontal } from 'lucide-react';
@@ -21,10 +25,22 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'amount' | 'date' | 'name'>('amount');
 
-  const monthlySpend = calculateMonthlySpend(mockSubscriptions);
-  const yearlySpend = calculateYearlySpend(mockSubscriptions);
-  const activeCount = mockSubscriptions.filter(s => s.status === 'active').length;
-  const upcomingRenewals = mockSubscriptions
+  const { data: subscriptions = [], isLoading } = useSubscriptions();
+  const { data: userData } = useQuery<{ user: { id: string; name: string; email: string } }>({
+    queryKey: ['me'],
+    queryFn: async () => api.get('/auth/me'),
+    retry: false,
+    staleTime: 1000 * 60 * 5,
+  });
+  const fullName = userData?.user?.name ?? 'Dashboard';
+  const firstName = fullName.split(' ')[0] || 'Dashboard';
+
+  const monthlySpend = calculateMonthlySpend(subscriptions);
+  const monthlySpendChange = calculateMonthlySpendChange(subscriptions);
+  const yearlySpend = calculateYearlySpend(subscriptions);
+  const activeCount = subscriptions.filter(s => s.status === 'active').length;
+  const activeCountChange = calculateActiveSubscriptionsChange(subscriptions);
+  const upcomingRenewals = subscriptions
     .filter(s => s.status === 'active')
     .filter(s => {
       const nextDate = new Date(s.nextBillingDate);
@@ -33,7 +49,7 @@ const Dashboard = () => {
       return daysUntil <= 7 && daysUntil >= 0;
     }).length;
 
-  const filteredSubscriptions = mockSubscriptions
+  const filteredSubscriptions = subscriptions
     .filter(s => s.merchant.toLowerCase().includes(searchQuery.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === 'amount') return b.amount - a.amount;
@@ -52,17 +68,23 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="font-display text-3xl font-bold mb-2">Dashboard</h1>
+          <h1 className="font-display text-3xl font-bold mb-2">Welcome {firstName}!</h1>
           <p className="text-muted-foreground">Track and manage all your subscriptions in one place.</p>
         </motion.div>
 
-        {/* Stats */}
+        {isLoading ? (
+          <div className="flex h-64 items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <>
+            {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Monthly Spend"
             value={`$${monthlySpend.toFixed(2)}`}
-            change="+2.4%"
-            changeType="negative"
+            change={`${monthlySpendChange > 0 ? '+' : ''}${monthlySpendChange.toFixed(1)}%`}
+            changeType={monthlySpendChange > 0 ? 'negative' : monthlySpendChange < 0 ? 'positive' : 'neutral'}
             icon={DollarSign}
             delay={0}
           />
@@ -75,8 +97,8 @@ const Dashboard = () => {
           <StatCard
             title="Active Subscriptions"
             value={activeCount.toString()}
-            change="+1"
-            changeType="neutral"
+            change={`${activeCountChange >= 0 ? '+' : ''}${activeCountChange}`}
+            changeType={activeCountChange > 0 ? 'negative' : activeCountChange < 0 ? 'positive' : 'neutral'}
             icon={CreditCard}
             delay={0.2}
           />
@@ -146,9 +168,11 @@ const Dashboard = () => {
 
           {/* Chart */}
           <div>
-            <SpendingChart />
+            <SpendingChart subscriptions={subscriptions} />
           </div>
         </div>
+        </>
+        )}
       </main>
 
       {/* Detail Modal */}
