@@ -3,6 +3,7 @@ import { Subscription } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { Calendar, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BrandLogo from '@/components/dashboard/BrandLogo';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,12 +40,7 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
     >
       <div className="flex items-center gap-4">
         {/* Logo */}
-        <div 
-          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-          style={{ backgroundColor: `${subscription.color}20` }}
-        >
-          {subscription.logo}
-        </div>
+        <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" />
 
         {/* Info */}
         <div className="flex-1 min-w-0">

@@ -71,4 +71,46 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Update a subscription
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { merchant, logo, amount, frequency, nextBillingDate, status, category, color } = req.body;
+    
+    const updatedSub = await prisma.subscription.update({
+      where: { id },
+      data: {
+        ...(merchant && { name: merchant }),
+        ...(logo && { logo }),
+        ...(amount !== undefined && { price: amount }),
+        ...(frequency && { billingCycle: frequency }),
+        ...(nextBillingDate !== undefined && { nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null }),
+        ...(status && { status }),
+        ...(category && { category }),
+        ...(color && { color }),
+      }
+    });
+    
+    res.json(updatedSub);
+  } catch (error) {
+    console.error('Error updating subscription:', error);
+    res.status(500).json({ error: 'Failed to update subscription' });
+  }
+});
+
+// Delete a subscription
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.subscription.delete({
+      where: { id }
+    });
+    
+    res.json({ message: 'Subscription deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting subscription:', error);
+    res.status(500).json({ error: 'Failed to delete subscription' });
+  }
+});
+
 export default router;

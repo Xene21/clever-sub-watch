@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Subscription } from '@/lib/mock-data';
 import { X, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import BrandLogo from '@/components/dashboard/BrandLogo';
 
 interface SubscriptionDetailProps {
   subscription: Subscription | null;
@@ -62,12 +63,7 @@ const SubscriptionDetail = ({ subscription, onClose }: SubscriptionDetailProps) 
               </div>
 
               <div className="flex items-center gap-4">
-                <div 
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-                  style={{ backgroundColor: `${subscription.color}20` }}
-                >
-                  {subscription.logo}
-                </div>
+                <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" className="w-16 h-16 !rounded-2xl" />
                 <div>
                   <h2 className="font-display text-2xl font-bold">{subscription.merchant}</h2>
                   <p className="text-muted-foreground capitalize">{subscription.category}</p>
