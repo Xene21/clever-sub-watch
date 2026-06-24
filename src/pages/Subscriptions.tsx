@@ -28,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { Subscription } from '@/lib/mock-data';
-import { api } from '@/lib/api';
+
 
 const SubscriptionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,7 +41,11 @@ const SubscriptionsPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/subscriptions/${id}`);
+      const res = await fetch(`/api/subscriptions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
       toast.success('Subscription deleted');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     } catch (error) {
@@ -52,7 +56,13 @@ const SubscriptionsPage = () => {
   const handleToggleStatus = async (sub: Subscription) => {
     try {
       const newStatus = sub.status === 'active' ? 'paused' : 'active';
-      await api.put(`/subscriptions/${sub.id}`, { status: newStatus });
+      const res = await fetch(`/api/subscriptions/${sub.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error();
       toast.success(`Subscription ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
     } catch (error) {

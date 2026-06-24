@@ -11,7 +11,7 @@ const sizeMap = {
   lg: { wrapper: 'w-12 h-12', img: 'w-7 h-7', text: 'text-2xl' },
 };
 
-const isUrl = (str: string) => str.startsWith('http') || str.startsWith('/');
+const isUrl = (str: string) => str.startsWith('http') || str.startsWith('/') || str.startsWith('data:');
 
 const BrandLogo = ({ logo, color, size = 'md', className = '' }: BrandLogoProps) => {
   const s = sizeMap[size];

@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import subscriptionsRoutes from './routes/subscriptions';
+import aiRoutes from './routes/ai';
 dotenv.config();
 
 const app = express();
@@ -18,6 +19,7 @@ app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

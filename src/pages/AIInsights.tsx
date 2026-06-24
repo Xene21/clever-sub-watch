@@ -4,6 +4,7 @@ import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, User, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -12,30 +13,6 @@ interface Message {
   timestamp: Date;
 }
 
-const mockInsights = `## 📊 Monthly Subscription Analysis
-
-Based on your connected accounts, here's what I found:
-
-### Monthly Spend Summary
-Your total monthly recurring spend is **$112.97**, which translates to **$1,355.64** annually.
-
-### 💸 Biggest Expenses
-1. **Adobe Creative Cloud** - $54.99/mo (49% of spending)
-2. **ChatGPT Plus** - $20.00/mo (18%)
-3. **Netflix** - $15.99/mo (14%)
-
-### ⚠️ Potential Concerns
-- **Adobe Creative Cloud** price increased from $52.99 to $54.99 (+3.8%)
-- **Disney+** appears to be paused - you haven't been charged in 2 months
-
-### 💡 Optimization Tips
-1. Consider the **Netflix Standard with Ads** plan to save $6/mo
-2. GitHub Pro offers a **free tier** for personal use - you could save $4/mo
-3. Bundle **Disney+, Hulu, ESPN+** for $14.99 vs separate subscriptions
-
-### 🎯 Estimated Savings Potential: **$127/year**
-
-Want me to help you with anything specific?`;
 
 const AIInsights = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -69,21 +46,34 @@ const AIInsights = () => {
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const { data } = await api.post('/ai/chat', {
+        messages: updatedMessages.map(({ role, content }) => ({ role, content })),
+      });
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: mockInsights,
+        content: data.reply,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiMessage]);
+    } catch (err: any) {
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: err?.response?.data?.error || 'Something went wrong. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const quickPrompts = [
