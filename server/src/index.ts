@@ -11,9 +11,20 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:8080',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: 'http://localhost:5173', // Vite default port
-  credentials: true, // Allow cookies
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
+  credentials: true,
 }));
 app.use(express.json());
 app.use(cookieParser());
