@@ -9,6 +9,7 @@ export interface Subscription {
   category: string;
   color: string;
   startDate?: string;
+  lastBillingDate?: string | null;
   history: { date: string; amount: number }[];
 }
 

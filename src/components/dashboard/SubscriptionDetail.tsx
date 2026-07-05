@@ -21,10 +21,45 @@ const SubscriptionDetail = ({ subscription, onClose }: SubscriptionDetailProps) 
     });
   };
 
+  const computeHistory = (
+    startDate: string | undefined,
+    lastBillingDate: string | null | undefined,
+    billingCycle: string,
+    amount: number
+  ) => {
+    if (!startDate) return [];
+    const start = new Date(startDate);
+    const end = lastBillingDate ? new Date(lastBillingDate) : new Date();
+    const entries = [];
+    const current = new Date(start);
+
+    while (current <= end) {
+      entries.push({
+        date: current.toISOString().split('T')[0],
+        amount,
+      });
+      switch (billingCycle) {
+        case 'weekly':    current.setDate(current.getDate() + 7);   break;
+        case 'monthly':   current.setMonth(current.getMonth() + 1); break;
+        case 'quarterly': current.setMonth(current.getMonth() + 3); break;
+        case 'yearly':    current.setFullYear(current.getFullYear() + 1); break;
+        default:          current.setMonth(current.getMonth() + 1);
+      }
+    }
+    return entries.reverse();
+  };
+
+  const computedHistory = subscription ? computeHistory(
+    subscription.startDate,
+    subscription.lastBillingDate,
+    subscription.frequency,
+    subscription.amount
+  ) : [];
+
   const calculateAverageCharge = () => {
-    if (subscription.history.length === 0) return subscription.amount;
-    const total = subscription.history.reduce((sum, h) => sum + h.amount, 0);
-    return total / subscription.history.length;
+    if (computedHistory.length === 0) return subscription.amount;
+    const total = computedHistory.reduce((sum, h) => sum + h.amount, 0);
+    return total / computedHistory.length;
   };
 
   return (
@@ -133,9 +168,9 @@ const SubscriptionDetail = ({ subscription, onClose }: SubscriptionDetailProps) 
                   <h3 className="font-medium">Payment History</h3>
                 </div>
                 
-                {subscription.history.length > 0 ? (
+                {computedHistory.length > 0 ? (
                   <div className="space-y-2">
-                    {subscription.history.map((payment, index) => (
+                    {computedHistory.map((payment, index) => (
                       <div 
                         key={index}
                         className="flex items-center justify-between p-3 rounded-lg bg-secondary/30"

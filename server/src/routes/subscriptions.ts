@@ -22,13 +22,19 @@ router.get('/', async (req: AuthRequest, res) => {
       logo: sub.logo || '📦',
       amount: sub.price,
       frequency: sub.billingCycle,
+      billingCycleDay: sub.billingCycleDay ?? null,
+      startDate: sub.startDate.toISOString().split('T')[0],
+      lastBillingDate: sub.lastBillingDate
+        ? sub.lastBillingDate.toISOString().split('T')[0]
+        : null,
       nextBillingDate: sub.nextBillingDate
         ? sub.nextBillingDate.toISOString().split('T')[0]
         : sub.startDate.toISOString().split('T')[0],
       status: sub.status,
       category: sub.category || 'Other',
       color: sub.color || '#000000',
-      startDate: sub.startDate.toISOString().split('T')[0],
+      detectionSource: sub.detectionSource,
+      plaidTransactionId: sub.plaidTransactionId ?? null,
       history: [],
     }));
 
@@ -39,10 +45,48 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+// GET /api/subscriptions/:id — fetch a single subscription (for detail page)
+router.get('/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const sub = await prisma.subscription.findUnique({ where: { id } });
+
+    if (!sub) return res.status(404).json({ error: 'Subscription not found' });
+    if (sub.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    res.json({
+      id: sub.id,
+      merchant: sub.name,
+      logo: sub.logo || '📦',
+      color: sub.color || '#000000',
+      amount: sub.price,
+      frequency: sub.billingCycle,
+      category: sub.category || 'Other',
+      status: sub.status,
+      startDate: sub.startDate.toISOString().split('T')[0],
+      lastBillingDate: sub.lastBillingDate
+        ? sub.lastBillingDate.toISOString().split('T')[0]
+        : null,
+      nextBillingDate: sub.nextBillingDate
+        ? sub.nextBillingDate.toISOString().split('T')[0]
+        : sub.startDate.toISOString().split('T')[0],
+      detectionSource: sub.detectionSource,
+      history: [], // history is computed client-side from billing cycle + dates
+    });
+  } catch (error) {
+    console.error('Error fetching subscription:', error);
+    res.status(500).json({ error: 'Failed to fetch subscription' });
+  }
+});
+
 // POST /api/subscriptions — userId is taken from the JWT token, not the request body
 router.post('/', async (req: AuthRequest, res) => {
   try {
-    const { merchant, logo, amount, frequency, nextBillingDate, status, category, color } = req.body;
+    const {
+      merchant, logo, amount, frequency, billingCycleDay,
+      lastBillingDate, nextBillingDate, status, category, color,
+      plaidTransactionId, detectionSource,
+    } = req.body;
 
     if (!merchant || amount === undefined || !frequency) {
       return res.status(400).json({ error: 'Missing required fields: merchant, amount, frequency' });
@@ -54,10 +98,14 @@ router.post('/', async (req: AuthRequest, res) => {
         logo: logo ?? null,
         price: amount,
         billingCycle: frequency,
+        billingCycleDay: billingCycleDay ?? null,
+        lastBillingDate: lastBillingDate ? new Date(lastBillingDate) : null,
         nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
         status: status || 'active',
         category: category ?? null,
         color: color ?? null,
+        plaidTransactionId: plaidTransactionId ?? null,
+        detectionSource: detectionSource || 'manual',
         userId: req.userId!,
       },
     });
@@ -73,7 +121,11 @@ router.post('/', async (req: AuthRequest, res) => {
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { merchant, logo, amount, frequency, nextBillingDate, status, category, color } = req.body;
+    const {
+      merchant, logo, amount, frequency, billingCycleDay,
+      lastBillingDate, nextBillingDate, status, category, color,
+      plaidTransactionId, detectionSource,
+    } = req.body;
 
     // Ownership check
     const existing = await prisma.subscription.findUnique({ where: { id } });
@@ -91,12 +143,18 @@ router.put('/:id', async (req: AuthRequest, res) => {
         ...(logo !== undefined && { logo }),
         ...(amount !== undefined && { price: amount }),
         ...(frequency && { billingCycle: frequency }),
+        ...(billingCycleDay !== undefined && { billingCycleDay: billingCycleDay ?? null }),
+        ...(lastBillingDate !== undefined && {
+          lastBillingDate: lastBillingDate ? new Date(lastBillingDate) : null,
+        }),
         ...(nextBillingDate !== undefined && {
           nextBillingDate: nextBillingDate ? new Date(nextBillingDate) : null,
         }),
         ...(status && { status }),
         ...(category !== undefined && { category }),
         ...(color !== undefined && { color }),
+        ...(plaidTransactionId !== undefined && { plaidTransactionId: plaidTransactionId ?? null }),
+        ...(detectionSource && { detectionSource }),
       },
     });
 

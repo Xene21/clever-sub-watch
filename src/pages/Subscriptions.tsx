@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit } from 'lucide-react';
+import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
 import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { AddSubscriptionForm } from '@/components/dashboard/AddSubscriptionForm';
@@ -32,12 +33,39 @@ import { Subscription } from '@/lib/mock-data';
 
 const SubscriptionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'merchant' | 'amount' | 'nextBillingDate' | 'status'>('amount');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { data: subscriptions = [], isLoading } = useSubscriptions();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const filteredSubscriptions = subscriptions.filter((sub) =>
-    sub.merchant.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSort = (column: 'merchant' | 'amount' | 'nextBillingDate' | 'status') => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('desc'); // Default to desc when switching to a new column
+    }
+  };
+
+  const filteredSubscriptions = subscriptions
+    .filter((sub) => sub.merchant.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      const modifier = sortOrder === 'asc' ? 1 : -1;
+      
+      switch (sortBy) {
+        case 'amount':
+          return (a.amount - b.amount) * modifier;
+        case 'nextBillingDate':
+          return (new Date(a.nextBillingDate).getTime() - new Date(b.nextBillingDate).getTime()) * modifier;
+        case 'merchant':
+          return a.merchant.localeCompare(b.merchant) * modifier;
+        case 'status':
+          return a.status.localeCompare(b.status) * modifier;
+        default:
+          return 0;
+      }
+    });
 
   const handleDelete = async (id: string) => {
     try {
@@ -122,12 +150,44 @@ const SubscriptionsPage = () => {
               <Table>
                 <TableHeader className="bg-secondary/20">
                   <TableRow>
-                    <TableHead>Service</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                      onClick={() => handleSort('merchant')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Service
+                        {sortBy === 'merchant' ? (sortOrder === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>) : <ArrowUpDown className="w-3 h-3 opacity-30"/>}
+                      </div>
+                    </TableHead>
                     <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-secondary/40 transition-colors"
+                      onClick={() => handleSort('status')}
+                    >
+                      <div className="flex items-center gap-1">
+                        Status
+                        {sortBy === 'status' ? (sortOrder === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>) : <ArrowUpDown className="w-3 h-3 opacity-30"/>}
+                      </div>
+                    </TableHead>
                     <TableHead>Billing Cycle</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Next Billing</TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-secondary/40 transition-colors"
+                      onClick={() => handleSort('amount')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Price
+                        {sortBy === 'amount' ? (sortOrder === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>) : <ArrowUpDown className="w-3 h-3 opacity-30"/>}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-secondary/40 transition-colors"
+                      onClick={() => handleSort('nextBillingDate')}
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        Next Billing
+                        {sortBy === 'nextBillingDate' ? (sortOrder === 'desc' ? <ArrowDown className="w-3 h-3"/> : <ArrowUp className="w-3 h-3"/>) : <ArrowUpDown className="w-3 h-3 opacity-30"/>}
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -140,7 +200,11 @@ const SubscriptionsPage = () => {
                     </TableRow>
                   ) : (
                     filteredSubscriptions.map((sub) => (
-                      <TableRow key={sub.id}>
+                      <TableRow
+                        key={sub.id}
+                        onClick={() => navigate(`/dashboard/subscriptions/${sub.id}`)}
+                        className="cursor-pointer hover:bg-secondary/30 transition-colors"
+                      >
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
                             <BrandLogo logo={sub.logo} color={sub.color} size="sm" />

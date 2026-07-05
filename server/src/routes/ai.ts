@@ -9,15 +9,94 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 router.use(requireAuth);
 
-// POST /api/ai/chat
+// ─────────────────────────────────────────────
+// GET /api/ai/sessions — list all sessions for the user
+// ─────────────────────────────────────────────
+router.get('/sessions', async (req: AuthRequest, res) => {
+  try {
+    const sessions = await prisma.chatSession.findMany({
+      where: { userId: req.userId },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    res.json(sessions);
+  } catch (error) {
+    console.error('Fetch sessions error:', error);
+    res.status(500).json({ error: 'Failed to fetch sessions' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// GET /api/ai/sessions/:id/messages — fetch messages for a session
+// ─────────────────────────────────────────────
+router.get('/sessions/:id/messages', async (req: AuthRequest, res) => {
+  try {
+    const session = await prisma.chatSession.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+      include: {
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    res.json(session.messages);
+  } catch (error) {
+    console.error('Fetch messages error:', error);
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// DELETE /api/ai/sessions/:id — delete a session + all its messages
+// ─────────────────────────────────────────────
+router.delete('/sessions/:id', async (req: AuthRequest, res) => {
+  try {
+    const session = await prisma.chatSession.findFirst({
+      where: { id: req.params.id, userId: req.userId },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    await prisma.chatSession.delete({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete session error:', error);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
+// ─────────────────────────────────────────────
+// POST /api/ai/chat — send a message and get a reply, persisted to DB
+// ─────────────────────────────────────────────
 router.post('/chat', async (req: AuthRequest, res) => {
   try {
-    const { messages } = req.body as {
+    const { messages, sessionId } = req.body as {
       messages: { role: 'user' | 'assistant'; content: string }[];
+      sessionId?: string;
     };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: 'messages array is required' });
+    }
+
+    // Validate existing session belongs to this user (if provided)
+    if (sessionId) {
+      const existing = await prisma.chatSession.findFirst({
+        where: { id: sessionId, userId: req.userId },
+      });
+      if (!existing) {
+        return res.status(404).json({ error: 'Session not found' });
+      }
     }
 
     // Fetch the user's real subscriptions to use as context
@@ -65,7 +144,44 @@ Keep responses focused and actionable. Do not make up subscription data — only
 
     const reply = completion.choices[0]?.message?.content ?? 'Sorry, I could not generate a response.';
 
-    res.json({ reply });
+    // The last item in `messages` is the user's message
+    const userContent = messages[messages.length - 1].content;
+    const title = userContent.slice(0, 60) + (userContent.length > 60 ? '…' : '');
+
+    // Persist to DB — create or update session
+    let resolvedSessionId = sessionId;
+
+    if (resolvedSessionId) {
+      // Add only the new user message + AI reply to the existing session
+      await prisma.chatMessage.createMany({
+        data: [
+          { sessionId: resolvedSessionId, role: 'user', content: userContent },
+          { sessionId: resolvedSessionId, role: 'assistant', content: reply },
+        ],
+      });
+      // Bump updatedAt
+      await prisma.chatSession.update({
+        where: { id: resolvedSessionId },
+        data: { updatedAt: new Date() },
+      });
+    } else {
+      // Create a brand-new session with all messages
+      const session = await prisma.chatSession.create({
+        data: {
+          title,
+          userId: req.userId!,
+          messages: {
+            create: [
+              ...messages.map(m => ({ role: m.role, content: m.content })),
+              { role: 'assistant', content: reply },
+            ],
+          },
+        },
+      });
+      resolvedSessionId = session.id;
+    }
+
+    res.json({ reply, sessionId: resolvedSessionId });
   } catch (error: any) {
     console.error('AI chat error:', error);
     if (error?.status === 401) {

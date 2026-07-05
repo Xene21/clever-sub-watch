@@ -9,31 +9,82 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String        @id @default(uuid())
+  email        String        @unique
   name         String
   passwordHash String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   subscriptions Subscription[]
+  chatSessions  ChatSession[]
+  plaidItems    PlaidItem[]
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  title     String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  role      String      // "user" | "assistant"
+  content   String
+  createdAt DateTime    @default(now())
+
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {
-  id              String   @id @default(uuid())
-  name            String
-  price           Float
-  currency        String   @default("USD")
-  billingCycle    String   @default("monthly") // e.g., monthly, yearly
-  startDate       DateTime @default(now())
-  nextBillingDate DateTime?
-  category        String?
-  status          String   @default("active")  // e.g., active, cancelled
-  logo            String?
-  color           String?
-  
-  userId          String
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String    @id @default(uuid())
+  name             String
+  price            Float
+  currency         String    @default("USD")
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  billingCycle     String    @default("monthly") // weekly | monthly | quarterly | yearly
+  billingCycleDay  Int?      // day of month the charge typically lands (sourced from Plaid)
+
+  startDate        DateTime  @default(now()) // date of first detected/entered transaction
+  lastBillingDate  DateTime? // date of most recent charge (updated by Plaid webhooks)
+  nextBillingDate  DateTime? // computed: lastBillingDate + billingCycle
+
+  category         String?
+  status           String    @default("active") // active | paused | cancelled
+  logo             String?
+  color            String?
+
+  // Plaid linkage
+  plaidTransactionId  String? // ID of the last matched Plaid transaction
+  detectionSource     String  @default("manual") // "plaid" | "manual"
+  plaidItemId         String?
+  plaidItem           PlaidItem? @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model PlaidItem {
+  id              String    @id @default(uuid())
+  accessToken     String    // AES-256-GCM encrypted
+  itemId          String    @unique
+  institutionName String?
+  institutionId   String?
+  lastSyncedAt    DateTime?
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subscriptions   Subscription[]
 }
