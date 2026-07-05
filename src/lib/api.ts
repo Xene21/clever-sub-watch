@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.PROD ? 'https://sub-pilot.onrender.com/api' : '/api';
 
 export const api = {
   async post(endpoint: string, data: any) {
