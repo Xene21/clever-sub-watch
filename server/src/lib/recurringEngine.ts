@@ -287,9 +287,7 @@ export async function runRecurringEngine(
     const rawCategory = latest.category?.[0] ?? null;
     const category = resolveMerchantCategory(merchantName, rawCategory);
 
-    detected++;
 
-    // Upsert: update if exists (matched by name + userId), create if not
     const existing = await prisma.subscription.findFirst({
       where: {
         userId,
@@ -308,11 +306,13 @@ export async function runRecurringEngine(
           lastBillingDate,
           nextBillingDate,
           plaidTransactionId: latest.transaction_id,
-          plaidItemId,
+          // NOTE: intentionally NOT updating plaidItemId — the subscription
+          // stays linked to whichever bank originally detected it.
         },
       });
       updated++;
     } else {
+      detected++; // only count genuinely new subscriptions
       await prisma.subscription.create({
         data: {
           userId,
