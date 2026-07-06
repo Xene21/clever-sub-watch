@@ -1,35 +1,4 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
-
-import DashboardSidebar from '@/components/dashboard/Sidebar';
-import { AddSubscriptionForm } from '@/components/dashboard/AddSubscriptionForm';
-import BrandLogo from '@/components/dashboard/BrandLogo';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-
-import { useSubscriptions } from '@/hooks/useSubscriptions';
-import { Subscription } from '@/lib/mock-data';
-import { api } from '@/lib/api';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
@@ -66,9 +35,14 @@ const SubscriptionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'merchant' | 'amount' | 'nextBillingDate' | 'status'>('amount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const { data: subscriptions = [], isLoading } = useSubscriptions();
+  const { data: subscriptions = [], isLoading, refetch } = useSubscriptions();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+
+  // Always fetch fresh data every time this page is visited
+  useEffect(() => {
+    refetch();
+  }, []);
 
   const handleSort = (column: 'merchant' | 'amount' | 'nextBillingDate' | 'status') => {
     if (sortBy === column) {
@@ -100,22 +74,32 @@ const SubscriptionsPage = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      await api.delete(`/subscriptions/${id}`);
+      const res = await fetch(`/api/subscriptions/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
       toast.success('Subscription deleted');
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to delete subscription');
+    } catch (error) {
+      toast.error('Failed to delete subscription');
     }
   };
 
   const handleToggleStatus = async (sub: Subscription) => {
     try {
       const newStatus = sub.status === 'active' ? 'paused' : 'active';
-      await api.put(`/subscriptions/${sub.id}`, { status: newStatus });
+      const res = await fetch(`/api/subscriptions/${sub.id}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) throw new Error();
       toast.success(`Subscription ${newStatus}`);
       queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to update status');
+    } catch (error) {
+      toast.error('Failed to update status');
     }
   };
 
