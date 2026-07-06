@@ -1,12 +1,13 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
 import authRoutes from './routes/auth';
 import subscriptionsRoutes from './routes/subscriptions';
 import aiRoutes from './routes/ai';
 import plaidRoutes from './routes/plaid';
-dotenv.config();
 
 const app = express();
 const port = process.env.PORT || 3000;
