@@ -4,6 +4,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import path from 'path';
 import authRoutes from './routes/auth';
 import subscriptionsRoutes from './routes/subscriptions';
 import aiRoutes from './routes/ai';
@@ -50,6 +51,15 @@ app.use('/api/plaid', plaidRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Serve frontend static files
+const frontendDistPath = path.join(__dirname, '../../dist');
+app.use(express.static(frontendDistPath));
+
+// All other GET requests not handled by API routes will serve the React app
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 app.listen(Number(port), '0.0.0.0', () => {
