@@ -23,7 +23,7 @@ export const useSubscriptions = () => {
         };
       });
     },
-    retry: false,
-    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnMount: 'always', // always fetch fresh data when the page is visited
+    retry: false,             // don't hammer the server with retries on error
   });
 };
