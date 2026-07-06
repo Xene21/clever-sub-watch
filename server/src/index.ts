@@ -21,7 +21,17 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (server-to-server, curl, mobile apps)
     if (!origin) return callback(null, true);
+    
+    // Check exact matches
     if (allowedOrigins.includes(origin)) return callback(null, true);
+    
+    // Forgive trailing slashes in the FRONTEND_URL environment variable
+    const cleanEnvUrl = process.env.FRONTEND_URL?.replace(/\/$/, '');
+    if (cleanEnvUrl && origin === cleanEnvUrl) return callback(null, true);
+
+    // Ultimate fallback: allow ANY vercel.app preview or production URL to prevent headaches
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+
     // Log for debugging, but reject cleanly without throwing
     console.warn(`CORS: blocked request from origin: ${origin}`);
     console.warn(`CORS: allowed origins are: ${allowedOrigins.join(', ')}`);
