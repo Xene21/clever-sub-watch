@@ -8,6 +8,31 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Plane, Eye, EyeOff, Mail, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 
+const COMMON_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'live.com', 'me.com'];
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+function getEmailTypoWarning(email: string): string | null {
+  const at = email.lastIndexOf('@');
+  if (at === -1) return null;
+  const domain = email.slice(at + 1).toLowerCase();
+  for (const correct of COMMON_DOMAINS) {
+    if (domain !== correct && levenshtein(domain, correct) <= 2) {
+      return `Did you mean @${correct}?`;
+    }
+  }
+  return null;
+}
+
+function levenshtein(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++)
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+  return dp[a.length][b.length];
+}
+
 const Signup = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -15,11 +40,26 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailWarning, setEmailWarning] = useState<string | null>(null);
   const navigate = useNavigate();
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setEmail(val);
+    if (EMAIL_REGEX.test(val)) {
+      setEmailWarning(getEmailTypoWarning(val));
+    } else {
+      setEmailWarning(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!EMAIL_REGEX.test(email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
     setIsLoading(true);
     try {
       const response = await api.post('/auth/signup', { name, email, password });
@@ -93,10 +133,13 @@ const Signup = () => {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={handleEmailChange}
                   className="pl-11 h-12 bg-secondary/50 border-border/50"
                   required
                 />
+              {emailWarning && (
+                <p className="text-xs text-yellow-400 mt-1">⚠️ {emailWarning}</p>
+              )}
               </div>
             </div>
 

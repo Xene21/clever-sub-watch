@@ -17,6 +17,11 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
+    const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!EMAIL_REGEX.test(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
     // Check if user exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
