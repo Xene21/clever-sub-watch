@@ -57,7 +57,7 @@ function PlaidLinkButton({ onSuccess, onExit }: PlaidLinkButtonProps) {
   }, [fetchLinkToken]);
 
   const { open, ready } = usePlaidLink({
-    token: linkToken ?? '',
+    token: linkToken,
     onSuccess: (publicToken, metadata) => {
       onSuccess(publicToken, metadata);
     },

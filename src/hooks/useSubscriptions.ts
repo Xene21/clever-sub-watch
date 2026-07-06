@@ -23,5 +23,7 @@ export const useSubscriptions = () => {
         };
       });
     },
+    retry: false,
+    staleTime: 1000 * 60 * 2, // 2 minutes
   });
 };
