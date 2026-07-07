@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import StatCard from '@/components/dashboard/StatCard';
 import SubscriptionCard from '@/components/dashboard/SubscriptionCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
@@ -60,9 +59,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
-      
-      <main className="ml-64 p-8">
+      <main className="p-4 md:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

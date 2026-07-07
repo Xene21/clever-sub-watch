@@ -7,7 +7,6 @@ import {
   Loader2, AlertCircle, Landmark, Zap, ChevronRight,
 } from 'lucide-react';
 
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -190,9 +189,7 @@ const ConnectBank = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
-
-      <main className="ml-64 p-8 max-w-4xl">
+      <main className="p-4 md:p-8 max-w-4xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

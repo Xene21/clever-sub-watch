@@ -107,7 +107,7 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
         {/* Actions */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               <MoreHorizontal className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>

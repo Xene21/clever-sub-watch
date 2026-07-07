@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import BrandLogo from '@/components/dashboard/BrandLogo';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -133,8 +132,7 @@ const SubscriptionDetail = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardSidebar />
-        <main className="ml-64 p-8 flex items-center justify-center h-screen">
+        <main className="p-4 md:p-8 flex items-center justify-center h-screen">
           <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
         </main>
       </div>
@@ -144,8 +142,7 @@ const SubscriptionDetail = () => {
   if (isError || !sub) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardSidebar />
-        <main className="ml-64 p-8">
+        <main className="p-4 md:p-8">
           <div className="glass-card p-10 text-center">
             <AlertCircle className="w-10 h-10 mx-auto text-destructive mb-3" />
             <p className="text-muted-foreground">Unable to load details.</p>
@@ -163,9 +160,7 @@ const SubscriptionDetail = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
-
-      <main className="ml-64 p-8 max-w-4xl">
+      <main className="p-4 md:p-8 max-w-4xl mx-auto">
         {/* Back button */}
         <motion.button
           initial={{ opacity: 0, x: -10 }}

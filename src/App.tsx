@@ -16,6 +16,8 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+import DashboardLayout from "./components/dashboard/DashboardLayout";
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -26,12 +28,15 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/subscriptions" element={<SubscriptionsPage />} />
-          <Route path="/dashboard/subscriptions/:id" element={<SubscriptionDetail />} />
-          <Route path="/dashboard/insights" element={<AIInsights />} />
-          <Route path="/dashboard/connect" element={<ConnectBank />} />
-          <Route path="/dashboard/settings" element={<Settings />} />
+          
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard/subscriptions" element={<SubscriptionsPage />} />
+            <Route path="/dashboard/subscriptions/:id" element={<SubscriptionDetail />} />
+            <Route path="/dashboard/insights" element={<AIInsights />} />
+            <Route path="/dashboard/connect" element={<ConnectBank />} />
+            <Route path="/dashboard/settings" element={<Settings />} />
+          </Route>
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

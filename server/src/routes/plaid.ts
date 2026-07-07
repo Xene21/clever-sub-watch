@@ -7,16 +7,17 @@ import {
   CountryCode,
   Transaction,
 } from 'plaid';
-import { prisma } from '../lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { encrypt, decrypt } from '../lib/encryption';
 import { runRecurringEngine } from '../lib/recurringEngine';
 
 const router = express.Router();
+const prisma = new PrismaClient();
 
-const plaidEnv = (process.env.PLAID_ENV || 'sandbox') as keyof typeof PlaidEnvironments;
+// ── Plaid client setup ────────────────────────────────────────────────────────
 const plaidConfig = new Configuration({
-  basePath: PlaidEnvironments[plaidEnv],
+  basePath: PlaidEnvironments[process.env.PLAID_ENV as keyof typeof PlaidEnvironments || 'sandbox'],
   baseOptions: {
     headers: {
       'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,

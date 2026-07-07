@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Send, Sparkles, User, Loader2, Plus, MessageSquare, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -178,9 +177,8 @@ const AIInsights = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
 
-      <main className="ml-64 h-screen flex">
+      <main className="h-screen flex">
         {/* History Sidebar */}
         <AnimatePresence initial={false}>
           {historyOpen && (

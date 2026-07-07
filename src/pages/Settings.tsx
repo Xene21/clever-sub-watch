@@ -8,7 +8,6 @@ import {
   Zap, ChevronRight, Loader2, TriangleAlert, Lock
 } from 'lucide-react';
 
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -274,9 +273,7 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
-
-      <main className="ml-64 p-8 max-w-4xl">
+      <main className="p-4 md:p-8 max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}

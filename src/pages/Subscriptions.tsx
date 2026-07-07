@@ -5,7 +5,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 
-import DashboardSidebar from '@/components/dashboard/Sidebar';
 import { AddSubscriptionForm } from '@/components/dashboard/AddSubscriptionForm';
 import BrandLogo from '@/components/dashboard/BrandLogo';
 import { Button } from '@/components/ui/button';
@@ -105,9 +104,7 @@ const SubscriptionsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardSidebar />
-
-      <main className="ml-64 p-8">
+      <main className="p-4 md:p-8">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}

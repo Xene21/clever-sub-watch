@@ -35,14 +35,14 @@ const Navbar = () => {
           </div>
 
           {/* Auth Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Link to="/login">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="px-2 md:px-4">
                 Log in
               </Button>
             </Link>
             <Link to="/signup">
-              <Button variant="default" size="sm">
+              <Button variant="default" size="sm" className="px-3 md:px-4">
                 Get Started
               </Button>
             </Link>

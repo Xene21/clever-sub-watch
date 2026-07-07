@@ -23,7 +23,11 @@ const navItems = [
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
-const DashboardSidebar = () => {
+interface DashboardSidebarProps {
+  mobileOpen?: boolean;
+}
+
+const DashboardSidebar = ({ mobileOpen }: DashboardSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -42,12 +46,13 @@ const DashboardSidebar = () => {
 
   return (
     <motion.aside
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.3 }}
       className={cn(
         "fixed left-0 top-0 h-screen bg-sidebar border-r border-sidebar-border flex flex-col z-50 transition-all duration-300",
-        collapsed ? "w-20" : "w-64"
+        // Mobile behavior: slide in/out
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+        // Desktop behavior: expand/collapse width
+        "w-64",
+        collapsed && "md:w-20"
       )}
     >
       {/* Logo */}
@@ -64,7 +69,7 @@ const DashboardSidebar = () => {
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-transform",
+            "hidden md:block p-2 rounded-lg hover:bg-sidebar-accent text-sidebar-foreground transition-transform",
             collapsed && "rotate-180"
           )}
         >
