@@ -24,6 +24,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
 import { useSubscriptions } from '@/hooks/useSubscriptions';
@@ -32,6 +39,7 @@ import { Subscription } from '@/lib/mock-data';
 
 const SubscriptionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'merchant' | 'amount' | 'nextBillingDate' | 'status'>('amount');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const { data: subscriptions = [], isLoading, refetch } = useSubscriptions();
@@ -53,7 +61,11 @@ const SubscriptionsPage = () => {
   };
 
   const filteredSubscriptions = subscriptions
-    .filter((sub) => sub.merchant.toLowerCase().includes(searchQuery.toLowerCase()))
+    .filter((sub) => {
+      const matchesSearch = sub.merchant.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || sub.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    })
     .sort((a, b) => {
       const modifier = sortOrder === 'asc' ? 1 : -1;
       
@@ -109,14 +121,14 @@ const SubscriptionsPage = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex justify-between items-end mb-8"
+          className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8"
         >
           <div>
             <h1 className="font-display text-3xl font-bold mb-2">Subscriptions</h1>
             <p className="text-muted-foreground">Manage all your active and paused subscriptions.</p>
           </div>
           <AddSubscriptionForm>
-            <Button>
+            <Button className="w-full sm:w-auto">
               <Plus className="w-4 h-4 mr-2" />
               Add Subscription
             </Button>
@@ -135,8 +147,8 @@ const SubscriptionsPage = () => {
             className="glass-card p-6"
           >
             {/* Search and Filters */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative flex-1 max-w-md">
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
+              <div className="relative flex-1 w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Search subscriptions..."
@@ -145,11 +157,105 @@ const SubscriptionsPage = () => {
                   className="pl-9 bg-secondary/50 border-border/50"
                 />
               </div>
+              <div className="w-full sm:w-[180px]">
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="bg-secondary/50 border-border/50">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="paused">Paused</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            {/* Data Table */}
-            <div className="rounded-md border border-border/50">
-              <Table>
+            {/* Mobile Cards View */}
+            <div className="grid grid-cols-1 gap-4 md:hidden mb-6">
+              {filteredSubscriptions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center p-8 text-center glass-card border-dashed">
+                  <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+                    <Search className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-1">No subscriptions found</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    We couldn't find any subscriptions matching your criteria.
+                  </p>
+                  <Button variant="outline" onClick={() => { setSearchQuery(''); setFilterStatus('all'); }}>
+                    Clear Filters
+                  </Button>
+                </div>
+              ) : (
+                filteredSubscriptions.map((sub) => (
+                  <div key={sub.id} className="glass-card p-4 flex flex-col gap-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate(`/dashboard/subscriptions/${sub.id}`)}>
+                        <BrandLogo logo={sub.logo} color={sub.color} size="md" />
+                        <div>
+                          <h3 className="font-semibold text-base">{sub.merchant}</h3>
+                          <p className="text-xs text-muted-foreground">{sub.category}</p>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0 -mr-2">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleToggleStatus(sub)}>
+                            {sub.status === 'active' ? (
+                              <><PauseCircle className="mr-2 h-4 w-4" /><span>Pause</span></>
+                            ) : (
+                              <><PlayCircle className="mr-2 h-4 w-4" /><span>Resume</span></>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(sub.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-border/50">
+                      <div>
+                        <p className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wider font-medium">Price / {sub.frequency}</p>
+                        <p className="font-semibold text-sm">${sub.amount.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] text-muted-foreground mb-0.5 uppercase tracking-wider font-medium">Status & Next Bill</p>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={
+                              sub.status === 'active'
+                                ? 'bg-green-500/10 text-green-500 border-green-500/20 px-1.5 py-0 text-[10px]'
+                                : 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 px-1.5 py-0 text-[10px]'
+                            }
+                          >
+                            {sub.status}
+                          </Badge>
+                          <span className="text-xs font-medium text-foreground">
+                            {new Date(sub.nextBillingDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Data Table */}
+            <div className="hidden md:block rounded-md border border-border/50 overflow-hidden">
+              <Table className="min-w-[700px]">
                 <TableHeader className="bg-secondary/20">
                   <TableRow>
                     <TableHead 
@@ -196,8 +302,19 @@ const SubscriptionsPage = () => {
                 <TableBody>
                   {filteredSubscriptions.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
-                        No subscriptions found.
+                      <TableCell colSpan={7} className="h-64 text-center">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+                            <Search className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                          <h3 className="text-lg font-medium mb-1">No subscriptions found</h3>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            We couldn't find any subscriptions matching your criteria.
+                          </p>
+                          <Button variant="outline" onClick={() => { setSearchQuery(''); setFilterStatus('all'); }}>
+                            Clear Filters
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
