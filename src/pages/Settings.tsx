@@ -286,11 +286,11 @@ const Settings = () => {
         </motion.div>
 
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="flex flex-col sm:flex-row w-full mb-8 bg-secondary/50 h-auto p-1 gap-1">
-            <TabsTrigger value="personal" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Personal Info</TabsTrigger>
-            <TabsTrigger value="banks" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Bank Connections</TabsTrigger>
-            <TabsTrigger value="export" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Export Data</TabsTrigger>
-            <TabsTrigger value="danger" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Danger Zone</TabsTrigger>
+          <TabsList className="flex w-full justify-start overflow-x-auto no-scrollbar bg-secondary/50 h-auto p-1 mb-8 gap-2">
+            <TabsTrigger value="personal" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Personal Info</TabsTrigger>
+            <TabsTrigger value="banks" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Bank Connections</TabsTrigger>
+            <TabsTrigger value="export" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Export Data</TabsTrigger>
+            <TabsTrigger value="danger" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Danger Zone</TabsTrigger>
           </TabsList>
 
           {/* Personal Info Tab */}

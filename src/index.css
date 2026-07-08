@@ -171,4 +171,15 @@
     0%, 100% { box-shadow: 0 0 20px hsl(173 80% 50% / 0.3); }
     50% { box-shadow: 0 0 40px hsl(173 80% 50% / 0.5); }
   }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
 }
