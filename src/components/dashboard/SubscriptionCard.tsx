@@ -76,41 +76,46 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
       className="glass-card-hover p-4 cursor-pointer group"
       onClick={onClick}
     >
-      <div className="flex items-center gap-4">
-        {/* Logo */}
-        <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" />
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left Section: Logo & Info */}
+        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+          {/* Logo - responsive sizing */}
+          <BrandLogo logo={subscription.logo} color={subscription.color} size="md" className="sm:hidden" />
+          <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" className="hidden sm:flex" />
 
-        {/* Info */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold truncate">{subscription.merchant}</h3>
-            <span className={cn("text-xs px-2 py-0.5 rounded-full capitalize", statusColors[subscription.status])}>
-              {subscription.status}
-            </span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="w-4 h-4" />
-            <span>Next: {formatDate(subscription.nextBillingDate)}</span>
-            <span className="text-border">•</span>
-            <span className="capitalize">{subscription.frequency}</span>
+          {/* Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
+              <h3 className="font-semibold truncate text-sm sm:text-base">{subscription.merchant}</h3>
+              <span className={cn("text-[10px] sm:text-xs px-2 py-0.5 rounded-full capitalize shrink-0", statusColors[subscription.status])}>
+                {subscription.status}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground truncate">
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+              <span className="truncate">Next: {formatDate(subscription.nextBillingDate)}</span>
+              <span className="text-border hidden sm:inline">•</span>
+              <span className="capitalize hidden sm:inline">{subscription.frequency}</span>
+            </div>
           </div>
         </div>
 
-        {/* Amount */}
-        <div className="text-right">
-          <p className="font-display text-xl font-bold">
-            ${subscription.amount.toFixed(2)}
-          </p>
-          <p className="text-xs text-muted-foreground">/{subscription.frequency === 'yearly' ? 'year' : 'mo'}</p>
-        </div>
+        {/* Right Section: Amount & Actions */}
+        <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+          <div className="text-right">
+            <p className="font-display text-sm sm:text-xl font-bold">
+              ${subscription.amount.toFixed(2)}
+            </p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">/{subscription.frequency === 'yearly' ? 'yr' : 'mo'}</p>
+          </div>
 
-        {/* Actions */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button variant="ghost" size="icon" className="md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
-          </DropdownMenuTrigger>
+          {/* Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 sm:mr-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-popover border-border">
             <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
               View Details

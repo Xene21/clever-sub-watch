@@ -134,12 +134,12 @@ const Dashboard = () => {
               </div>
 
               {/* Sort tabs */}
-              <div className="flex gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
                 {(['amount', 'date', 'name'] as const).map((sort) => (
                   <button
                     key={sort}
                     onClick={() => setSortBy(sort)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize whitespace-nowrap shrink-0 ${
                       sortBy === sort 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
