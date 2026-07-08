@@ -134,6 +134,7 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      </div>
     </motion.div>
   );
 };
