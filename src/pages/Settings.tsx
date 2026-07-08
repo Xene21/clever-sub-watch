@@ -286,11 +286,11 @@ const Settings = () => {
         </motion.div>
 
         <Tabs defaultValue="personal" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-secondary/50">
-            <TabsTrigger value="personal" className="data-[state=active]:bg-background">Personal Info</TabsTrigger>
-            <TabsTrigger value="banks" className="data-[state=active]:bg-background">Bank Connections</TabsTrigger>
-            <TabsTrigger value="export" className="data-[state=active]:bg-background">Export Data</TabsTrigger>
-            <TabsTrigger value="danger" className="data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Danger Zone</TabsTrigger>
+          <TabsList className="flex flex-col sm:flex-row w-full mb-8 bg-secondary/50 h-auto p-1 gap-1">
+            <TabsTrigger value="personal" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Personal Info</TabsTrigger>
+            <TabsTrigger value="banks" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Bank Connections</TabsTrigger>
+            <TabsTrigger value="export" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background">Export Data</TabsTrigger>
+            <TabsTrigger value="danger" className="w-full h-auto py-2 whitespace-normal data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Danger Zone</TabsTrigger>
           </TabsList>
 
           {/* Personal Info Tab */}
@@ -519,15 +519,15 @@ const Settings = () => {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="glass-card p-5 flex items-center justify-between gap-4"
+                        className="glass-card p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <div className="flex items-center gap-4 w-full sm:w-auto">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                             <Landmark className="w-6 h-6 text-primary" />
                           </div>
-                          <div>
-                            <h3 className="font-semibold">{bank.institutionName ?? 'Connected Bank'}</h3>
-                            <p className="text-sm text-muted-foreground">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold truncate">{bank.institutionName ?? 'Connected Bank'}</h3>
+                            <p className="text-sm text-muted-foreground truncate">
                               Last synced: {formatSyncTime(bank.lastSyncedAt)} ·{' '}
                               <span className="text-primary font-medium">{bank.subscriptionsDetected} subscription(s) detected</span>
                             </p>
@@ -659,7 +659,7 @@ const Settings = () => {
               {/* What's included */}
               <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 mb-6">
                 <p className="text-sm font-medium mb-3">What's included in the export</p>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
                     'Subscription name & amount',
                     'Billing frequency & status',
@@ -677,7 +677,7 @@ const Settings = () => {
               </div>
 
               {/* Format cards */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* CSV */}
                 <div className="rounded-xl border border-border/50 bg-secondary/10 p-5 flex flex-col gap-3">
                   <div className="flex items-center gap-2">
@@ -746,7 +746,7 @@ const Settings = () => {
                 <h2 className="text-xl font-semibold text-destructive">Danger Zone</h2>
               </div>
 
-              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 flex items-start justify-between gap-6">
+              <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
                 <div>
                   <h3 className="font-semibold text-foreground">Delete Account</h3>
                   <p className="text-sm text-muted-foreground mt-1 max-w-sm">
@@ -756,7 +756,7 @@ const Settings = () => {
                 </div>
                 <Button
                   variant="destructive"
-                  className="shrink-0"
+                  className="shrink-0 w-full sm:w-auto"
                   onClick={() => { setDeleteConfirmText(''); setShowDeleteDialog(true); }}
                   id="open-delete-dialog-btn"
                 >
