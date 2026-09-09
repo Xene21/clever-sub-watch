@@ -2,11 +2,11 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-interface PlaidTransaction {
+interface QuilttTransaction {
   transaction_id: string;
   merchant_name: string | null;
   name: string;
-  amount: number;        // Plaid: positive = debit (money out)
+  amount: number;        // positive = debit (money out)
   date: string;          // YYYY-MM-DD
   category: string[] | null;
   pending: boolean;
@@ -20,8 +20,8 @@ interface DetectedSubscription {
   lastBillingDate: Date;
   nextBillingDate: Date;
   category: string | null;
-  plaidTransactionId: string;
-  transactions: PlaidTransaction[];
+  transactionId: string;
+  transactions: QuilttTransaction[];
 }
 
 // ─────────────────────────────────────────────
@@ -130,10 +130,10 @@ const MERCHANT_CATEGORIES: Record<string, string> = {
  * Resolve a category for a merchant name.
  * 1. Exact match against the merchant dictionary.
  * 2. Partial match (dictionary key contained in merchant name, or vice versa).
- * 3. Fall back to the Plaid category string.
+ * 3. Fall back to the raw category string from the transaction.
  * 4. Default to 'Other'.
  */
-function resolveMerchantCategory(merchantName: string, plaidCategory: string | null): string {
+function resolveMerchantCategory(merchantName: string, rawCategory: string | null): string {
   const normalized = merchantName.toLowerCase()
     .replace(/\*.*$/, '')
     .replace(/\.(com|net|org|io)$/, '')
@@ -150,9 +150,9 @@ function resolveMerchantCategory(merchantName: string, plaidCategory: string | n
     }
   }
 
-  // 3. Plaid category fallback
-  if (plaidCategory) {
-    return plaidCategory.charAt(0).toUpperCase() + plaidCategory.slice(1).toLowerCase();
+  // 3. Raw category fallback
+  if (rawCategory) {
+    return rawCategory.charAt(0).toUpperCase() + rawCategory.slice(1).toLowerCase();
   }
 
   // 4. Ultimate fallback
@@ -214,8 +214,8 @@ function computeNextBillingDate(lastDate: Date, cycle: string): Date {
 // ─────────────────────────────────────────────
 export async function runRecurringEngine(
   userId: string,
-  transactions: PlaidTransaction[],
-  plaidItemId: string
+  transactions: QuilttTransaction[],
+  connectionId: string
 ): Promise<{ detected: number; updated: number }> {
 
   // 1. Filter out pending and refund (negative amount) transactions
@@ -224,7 +224,7 @@ export async function runRecurringEngine(
   );
 
   // 2. Group by normalized merchant name
-  const groups = new Map<string, PlaidTransaction[]>();
+  const groups = new Map<string, QuilttTransaction[]>();
 
   for (const tx of debits) {
     const rawName = tx.merchant_name || tx.name;
@@ -268,7 +268,7 @@ export async function runRecurringEngine(
     const cycle = detectCycle(gaps);
     if (!cycle) continue; // Not a recognizable recurring pattern
 
-    // Check amount consistency (allow <5% variance per PRD Section 7)
+    // Check amount consistency (allow <5% variance)
     const amounts = sorted.map(t => t.amount);
     const avgAmount = amounts.reduce((a, b) => a + b, 0) / amounts.length;
     const allConsistent = amounts.every(
@@ -283,16 +283,15 @@ export async function runRecurringEngine(
     const billingCycleDay = lastBillingDate.getDate();
     const merchantName = latest.merchant_name || latest.name;
 
-    // Map Plaid category → our category, with brand dictionary taking priority
+    // Map category, with brand dictionary taking priority over raw category
     const rawCategory = latest.category?.[0] ?? null;
     const category = resolveMerchantCategory(merchantName, rawCategory);
-
 
     const existing = await prisma.subscription.findFirst({
       where: {
         userId,
         name: { equals: merchantName, mode: 'insensitive' },
-        detectionSource: 'plaid',
+        detectionSource: 'quiltt',
       },
     });
 
@@ -305,8 +304,8 @@ export async function runRecurringEngine(
           billingCycleDay,
           lastBillingDate,
           nextBillingDate,
-          plaidTransactionId: latest.transaction_id,
-          // NOTE: intentionally NOT updating plaidItemId — the subscription
+          transactionId: latest.transaction_id,
+          // NOTE: intentionally NOT updating connectionId — the subscription
           // stays linked to whichever bank originally detected it.
         },
       });
@@ -326,9 +325,9 @@ export async function runRecurringEngine(
           nextBillingDate,
           category,
           status: 'active',
-          detectionSource: 'plaid',
-          plaidTransactionId: latest.transaction_id,
-          plaidItemId,
+          detectionSource: 'quiltt',
+          transactionId: latest.transaction_id,
+          connectionId,
         },
       });
     }

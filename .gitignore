@@ -24,4 +24,6 @@ dist-ssr
 *.sw?
 
 # Ignore local env files
+.env
+.env.local
 server/.env

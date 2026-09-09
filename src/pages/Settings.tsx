@@ -20,7 +20,7 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface PlaidItem {
+interface ConnectedItem {
   id: string;
   institutionName: string | null;
   lastSyncedAt: string | null;
@@ -120,14 +120,14 @@ const Settings = () => {
   };
 
   // ── Bank connection state ─────────────────────────────────────────────────
-  const [connectedBanks, setConnectedBanks] = useState<PlaidItem[]>([]);
+  const [connectedBanks, setConnectedBanks] = useState<ConnectedItem[]>([]);
   const [banksLoading, setBanksLoading] = useState(true);
   const [syncingId, setSyncingId] = useState<string | null>(null);
 
   const fetchItems = useCallback(async () => {
     setBanksLoading(true);
     try {
-      const res = await fetch('/api/plaid/items', { credentials: 'include' });
+      const res = await fetch('/api/quiltt/items', { credentials: 'include' });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setConnectedBanks(data);
@@ -235,7 +235,7 @@ const Settings = () => {
 
   const handleDisconnectBank = async (id: string) => {
     try {
-      const res = await fetch(`/api/plaid/items/${id}`, {
+      const res = await fetch(`/api/quiltt/items/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -250,7 +250,7 @@ const Settings = () => {
   const handleSyncBank = async (id: string) => {
     setSyncingId(id);
     try {
-      const res = await fetch('/api/plaid/sync', {
+      const res = await fetch('/api/quiltt/sync', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -483,9 +483,9 @@ const Settings = () => {
               <div>
                 <h3 className="font-display text-lg font-semibold mb-1">Bank-Grade Security</h3>
                 <p className="text-muted-foreground text-sm">
-                  Your connection is secured by Plaid, the same technology used by Venmo, Coinbase, and
-                  Betterment. We use AES-256-GCM encryption and never store your banking credentials.
-                  SubPilot has read-only access — we cannot move money.
+                  Your connection is secured by Quiltt, an open-banking platform trusted by
+                  thousands of apps. We use AES-256 encryption and never store your banking
+                  credentials. SubPilot has read-only access — we cannot move money.
                 </p>
               </div>
             </motion.div>
@@ -617,7 +617,7 @@ const Settings = () => {
                 {[
                   'We support 10,000+ financial institutions',
                   'Read-only access — we can never move your money',
-                  'Powered by Plaid — used by Venmo, Robinhood & more',
+                  'Powered by Quiltt — secure open-banking infrastructure',
                 ].map(point => (
                   <div key={point} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ChevronRight className="w-4 h-4 text-primary shrink-0" />
@@ -795,7 +795,7 @@ const Settings = () => {
                     <ul className="space-y-2 mb-6">
                       {[
                         'All subscriptions (manual & bank-detected)',
-                        'All linked bank connections (Plaid)',
+                        'All linked bank connections (Quiltt)',
                         'All AI Insights chat history',
                         'Your profile & login credentials',
                       ].map(item => (

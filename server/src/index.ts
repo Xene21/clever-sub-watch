@@ -8,7 +8,7 @@ import path from 'path';
 import authRoutes from './routes/auth';
 import subscriptionsRoutes from './routes/subscriptions';
 import aiRoutes from './routes/ai';
-import plaidRoutes from './routes/plaid';
+import quilttRoutes from './routes/quiltt';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -47,7 +47,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/ai', aiRoutes);
-app.use('/api/plaid', plaidRoutes);
+app.use('/api/quiltt', quilttRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

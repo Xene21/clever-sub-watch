@@ -9,15 +9,16 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  name         String
-  passwordHash String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  subscriptions Subscription[]
-  chatSessions  ChatSession[]
-  plaidItems    PlaidItem[]
+  id                String             @id @default(uuid())
+  email             String             @unique
+  name              String
+  passwordHash      String
+  quilttProfileId   String?            // Quiltt profile ID for this user
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  subscriptions     Subscription[]
+  chatSessions      ChatSession[]
+  quilttConnections QuilttConnection[]
 }
 
 model ChatSession {
@@ -48,10 +49,10 @@ model Subscription {
   currency         String    @default("USD")
 
   billingCycle     String    @default("monthly") // weekly | monthly | quarterly | yearly
-  billingCycleDay  Int?      // day of month the charge typically lands (sourced from Plaid)
+  billingCycleDay  Int?      // day of month the charge typically lands
 
   startDate        DateTime  @default(now()) // date of first detected/entered transaction
-  lastBillingDate  DateTime? // date of most recent charge (updated by Plaid webhooks)
+  lastBillingDate  DateTime? // date of most recent charge
   nextBillingDate  DateTime? // computed: lastBillingDate + billingCycle
 
   category         String?
@@ -59,11 +60,11 @@ model Subscription {
   logo             String?
   color            String?
 
-  // Plaid linkage
-  plaidTransactionId  String? // ID of the last matched Plaid transaction
-  detectionSource     String  @default("manual") // "plaid" | "manual"
-  plaidItemId         String?
-  plaidItem           PlaidItem? @relation(fields: [plaidItemId], references: [id], onDelete: SetNull)
+  // Quiltt linkage
+  transactionId    String?   // ID of the last matched Quiltt transaction
+  detectionSource  String    @default("manual") // "quiltt" | "manual"
+  connectionId     String?
+  connection       QuilttConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
 
   userId           String
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -72,12 +73,10 @@ model Subscription {
   updatedAt        DateTime  @updatedAt
 }
 
-model PlaidItem {
+model QuilttConnection {
   id              String    @id @default(uuid())
-  accessToken     String    // AES-256-GCM encrypted
-  itemId          String    @unique
+  quilttId        String    @unique  // Quiltt's internal connection ID
   institutionName String?
-  institutionId   String?
   lastSyncedAt    DateTime?
 
   userId          String

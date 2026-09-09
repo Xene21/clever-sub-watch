@@ -199,7 +199,7 @@ const SubscriptionDetail = () => {
                 <Badge variant="outline" className="capitalize text-muted-foreground">
                   {sub.frequency}
                 </Badge>
-                {sub.detectionSource === 'plaid' && (
+                {sub.detectionSource === 'quiltt' && (
                   <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
                     Auto-detected
                   </Badge>

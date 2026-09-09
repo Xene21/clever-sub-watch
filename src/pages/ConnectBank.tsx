@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePlaidLink } from 'react-plaid-link';
+import { QuilttButton, QuilttAuthProvider } from '@quiltt/react';
 import { toast } from 'sonner';
 import {
   Building2, Shield, CheckCircle, RefreshCw, Trash2,
@@ -16,87 +16,30 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface PlaidItem {
+interface ConnectedItem {
   id: string;
   institutionName: string | null;
   lastSyncedAt: string | null;
   subscriptionsDetected: number;
 }
 
-// ─── Plaid Link wrapper ───────────────────────────────────────────────────────
-
-interface PlaidLinkButtonProps {
-  onSuccess: (publicToken: string, metadata: any) => void;
-  onExit?: () => void;
-}
-
-function PlaidLinkButton({ onSuccess, onExit }: PlaidLinkButtonProps) {
-  const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [tokenLoading, setTokenLoading] = useState(false);
-
-  const fetchLinkToken = useCallback(async () => {
-    setTokenLoading(true);
-    try {
-      const res = await fetch('/api/plaid/create-link-token', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setLinkToken(data.link_token);
-    } catch {
-      toast.error("We couldn't connect your bank. Try again.");
-    } finally {
-      setTokenLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchLinkToken();
-  }, [fetchLinkToken]);
-
-  const { open, ready } = usePlaidLink({
-    token: linkToken,
-    onSuccess: (publicToken, metadata) => {
-      onSuccess(publicToken, metadata);
-    },
-    onExit: () => {
-      onExit?.();
-    },
-  });
-
-  return (
-    <Button
-      onClick={() => open()}
-      disabled={!ready || tokenLoading}
-      size="lg"
-      className="gap-2"
-      id="plaid-link-button"
-    >
-      {tokenLoading ? (
-        <Loader2 className="w-4 h-4 animate-spin" />
-      ) : (
-        <Landmark className="w-4 h-4" />
-      )}
-      Connect a Bank Account
-    </Button>
-  );
-}
-
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 const ConnectBank = () => {
-  const [connectedItems, setConnectedItems] = useState<PlaidItem[]>([]);
+  const [connectedItems, setConnectedItems] = useState<ConnectedItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [exchanging, setExchanging] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const CONNECTOR_ID = import.meta.env.VITE_QUILTT_CONNECTOR_ID as string;
 
   // Fetch connected bank accounts
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/plaid/items', { credentials: 'include' });
+      const res = await fetch('/api/quiltt/items', { credentials: 'include' });
       if (!res.ok) throw new Error();
       const data = await res.json();
       setConnectedItems(data);
@@ -107,23 +50,38 @@ const ConnectBank = () => {
     }
   }, []);
 
+  // Fetch a Quiltt session token from our backend so QuilttButton can open
+  const fetchSessionToken = useCallback(async () => {
+    try {
+      const res = await fetch('/api/quiltt/session', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setSessionToken(data.token);
+    } catch {
+      toast.error("Couldn't initialise bank connection. Please refresh.");
+    }
+  }, []);
+
   useEffect(() => {
     fetchItems();
-  }, [fetchItems]);
+    fetchSessionToken();
+  }, [fetchItems, fetchSessionToken]);
 
-  // Called after Plaid Link succeeds
-  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
-    setExchanging(true);
+  // Called after Quiltt Connector succeeds — sends connection ID to backend
+  const handleQuilttSuccess = async (connectionId: string, metadata: any) => {
+    setSyncing(true);
     setError(null);
     try {
-      const res = await fetch('/api/plaid/exchange-token', {
+      const res = await fetch('/api/quiltt/connection', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          public_token: publicToken,
-          institution_name: metadata?.institution?.name ?? null,
-          institution_id: metadata?.institution?.institution_id ?? null,
+          connectionId,
+          institutionName: metadata?.institution?.name ?? null,
         }),
       });
       if (!res.ok) throw new Error();
@@ -132,11 +90,13 @@ const ConnectBank = () => {
         `${data.institutionName ?? 'Bank'} connected! ${data.subscriptionsDetected} subscription(s) detected.`
       );
       await fetchItems();
+      // Refresh session token so the connector can be opened again
+      await fetchSessionToken();
     } catch {
       setError("We couldn't connect your bank. Try again.");
       toast.error("We couldn't connect your bank. Try again.");
     } finally {
-      setExchanging(false);
+      setSyncing(false);
     }
   };
 
@@ -144,7 +104,7 @@ const ConnectBank = () => {
   const handleSync = async (itemId: string) => {
     setSyncingId(itemId);
     try {
-      const res = await fetch('/api/plaid/sync', {
+      const res = await fetch('/api/quiltt/sync', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -164,7 +124,7 @@ const ConnectBank = () => {
   // Disconnect a bank account
   const handleDisconnect = async (itemId: string) => {
     try {
-      const res = await fetch(`/api/plaid/items/${itemId}`, {
+      const res = await fetch(`/api/quiltt/items/${itemId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -238,9 +198,9 @@ const ConnectBank = () => {
           <div>
             <h3 className="font-display text-lg font-semibold mb-1">Bank-Grade Security</h3>
             <p className="text-muted-foreground text-sm">
-              Your connection is secured by Plaid, the same technology used by Venmo, Coinbase, and
-              Betterment. We use AES-256-GCM encryption and never store your banking credentials.
-              SubPilot has read-only access, we cannot move money.
+              Your connection is secured by Quiltt, an open-banking platform trusted by
+              thousands of apps. We use AES-256 encryption and never store your banking
+              credentials. SubPilot has read-only access — we cannot move money.
             </p>
           </div>
         </motion.div>
@@ -378,9 +338,9 @@ const ConnectBank = () => {
 
               <div className="space-y-2 mb-6">
                 {[
-                  'We support 10,000+ financial institutions',
+                  'We support thousands of financial institutions',
                   'Read-only access — we can never move your money',
-                  'Powered by Plaid — used by Venmo, Robinhood & more',
+                  'Powered by Quiltt — secure open-banking infrastructure',
                 ].map(point => (
                   <div key={point} className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ChevronRight className="w-4 h-4 text-primary shrink-0" />
@@ -389,16 +349,31 @@ const ConnectBank = () => {
                 ))}
               </div>
 
-              {exchanging ? (
+              {syncing ? (
                 <div className="flex items-center gap-3 text-sm text-muted-foreground">
                   <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   Connecting your bank and scanning transactions…
                 </div>
+              ) : sessionToken && CONNECTOR_ID ? (
+                <QuilttAuthProvider token={sessionToken}>
+                  <QuilttButton
+                    connectorId={CONNECTOR_ID}
+                    onExitSuccess={(metadata: any) =>
+                      handleQuilttSuccess(metadata?.connectionId, metadata)
+                    }
+                    onExit={() => setError(null)}
+                  >
+                    <Button size="lg" className="gap-2" id="quiltt-connect-button">
+                      <Landmark className="w-4 h-4" />
+                      Connect a Bank Account
+                    </Button>
+                  </QuilttButton>
+                </QuilttAuthProvider>
               ) : (
-                <PlaidLinkButton
-                  onSuccess={handlePlaidSuccess}
-                  onExit={() => setError(null)}
-                />
+                <Button size="lg" className="gap-2" disabled>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Loading…
+                </Button>
               )}
             </div>
           </div>
@@ -421,3 +396,5 @@ const ConnectBank = () => {
 };
 
 export default ConnectBank;
+
+
