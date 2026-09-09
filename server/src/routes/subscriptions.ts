@@ -33,7 +33,7 @@ router.get('/', async (req: AuthRequest, res) => {
       category: sub.category || 'Other',
       color: sub.color || '#000000',
       detectionSource: sub.detectionSource,
-      plaidTransactionId: sub.plaidTransactionId ?? null,
+      transactionId: sub.transactionId ?? null,
       history: [],
     }));
 
@@ -84,7 +84,7 @@ router.post('/', async (req: AuthRequest, res) => {
     const {
       merchant, logo, amount, frequency, billingCycleDay,
       lastBillingDate, nextBillingDate, status, category, color,
-      plaidTransactionId, detectionSource,
+      transactionId, detectionSource,
     } = req.body;
 
     if (!merchant || amount === undefined || !frequency) {
@@ -103,7 +103,7 @@ router.post('/', async (req: AuthRequest, res) => {
         status: status || 'active',
         category: category ?? null,
         color: color ?? null,
-        plaidTransactionId: plaidTransactionId ?? null,
+        transactionId: transactionId ?? null,
         detectionSource: detectionSource || 'manual',
         userId: req.userId!,
       },
