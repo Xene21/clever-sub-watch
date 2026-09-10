@@ -62,7 +62,7 @@ const DashboardSidebar = ({ mobileOpen }: DashboardSidebarProps) => {
             <Plane className="w-5 h-5 text-primary-foreground" />
           </div>
           {!collapsed && (
-            <span className="font-display text-xl font-bold text-sidebar-foreground">SubPilot</span>
+            <span className="font-display text-xl font-bold text-sidebar-foreground">Nibrava Sub-Pilot</span>
           )}
           
         </Link>

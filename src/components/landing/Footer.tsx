@@ -12,7 +12,7 @@ const Footer = () => {
               <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <Plane className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="font-display text-xl font-bold">SubPilot</span>
+              <span className="font-display text-xl font-bold">Nibrava Sub-Pilot</span>
             </Link>
             <p className="text-muted-foreground text-sm">
               AI-powered subscription management for the modern era.
@@ -54,7 +54,7 @@ const Footer = () => {
 
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} SubPilot. All rights reserved.
+            © {new Date().getFullYear()} Nibrava Sub-Pilot. All rights reserved.
           </p>
           <div className="flex items-center gap-4">
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">

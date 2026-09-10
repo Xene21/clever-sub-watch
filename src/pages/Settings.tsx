@@ -186,11 +186,11 @@ const Settings = () => {
         ]);
         content = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         mimeType = 'text/csv';
-        filename = `subpilot-subscriptions-${date}.csv`;
+        filename = `Nibrava Sub-Pilot-subscriptions-${date}.csv`;
       } else {
         content = JSON.stringify(subs, null, 2);
         mimeType = 'application/json';
-        filename = `subpilot-subscriptions-${date}.json`;
+        filename = `Nibrava Sub-Pilot-subscriptions-${date}.json`;
       }
 
       const blob = new Blob([content], { type: mimeType });
@@ -485,7 +485,7 @@ const Settings = () => {
                 <p className="text-muted-foreground text-sm">
                   Your connection is secured by Quiltt, an open-banking platform trusted by
                   thousands of apps. We use AES-256 encryption and never store your banking
-                  credentials. SubPilot has read-only access — we cannot move money.
+                  credentials. Nibrava Sub-Pilot has read-only access — we cannot move money.
                 </p>
               </div>
             </motion.div>
@@ -571,7 +571,7 @@ const Settings = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove <strong>{bank.name}</strong> from SubPilot
+                                  This will remove <strong>{bank.name}</strong> from Nibrava Sub-Pilot
                                   and stop syncing transactions. Auto-detected subscriptions from this
                                   bank will remain in your dashboard.
                                 </AlertDialogDescription>
@@ -609,7 +609,7 @@ const Settings = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6">
-                SubPilot analyses up to 24 months of transaction history to detect recurring
+                Nibrava Sub-Pilot analyses up to 24 months of transaction history to detect recurring
                 payments. The whole process takes under 60 seconds.
               </p>
 

@@ -55,7 +55,7 @@ const Login = () => {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
             <Plane className="w-6 h-6 text-primary-foreground" />
           </div>
-          <span className="font-display text-2xl font-bold">SubPilot</span>
+          <span className="font-display text-2xl font-bold">Nibrava Sub-Pilot</span>
         </Link>
 
         {/* Card */}

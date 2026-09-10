@@ -26,7 +26,7 @@ const CTA = () => {
             Ready to Take Control?
           </h2>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto relative z-10">
-            Join thousands of users who save an average of $847 per year with SubPilot's intelligent subscription tracking.
+            Join thousands of users who save an average of $847 per year with Nibrava Sub-Pilot's intelligent subscription tracking.
           </p>
           <Link to="/signup" className="relative z-10 inline-block">
             <Button variant="hero" size="xl" className="group">

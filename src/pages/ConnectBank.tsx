@@ -200,7 +200,7 @@ const ConnectBank = () => {
             <p className="text-muted-foreground text-sm">
               Your connection is secured by Quiltt, an open-banking platform trusted by
               thousands of apps. We use AES-256 encryption and never store your banking
-              credentials. SubPilot has read-only access — we cannot move money.
+              credentials. Nibrava Sub-Pilot has read-only access — we cannot move money.
             </p>
           </div>
         </motion.div>
@@ -292,7 +292,7 @@ const ConnectBank = () => {
                             <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
                             <AlertDialogDescription>
                               This will remove{' '}
-                              <strong>{item.institutionName ?? 'this bank'}</strong> from SubPilot
+                              <strong>{item.institutionName ?? 'this bank'}</strong> from Nibrava Sub-Pilot
                               and stop syncing transactions. Auto-detected subscriptions from this
                               bank will remain in your dashboard.
                             </AlertDialogDescription>
@@ -332,7 +332,7 @@ const ConnectBank = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6">
-                SubPilot analyses up to 24 months of transaction history to detect recurring
+                Nibrava Sub-Pilot analyses up to 24 months of transaction history to detect recurring
                 payments. The whole process takes under 60 seconds.
               </p>
 

@@ -23,7 +23,7 @@ interface Session {
 const INITIAL_MESSAGE: Message = {
   id: 'welcome',
   role: 'assistant',
-  content: "Hi! I'm your SubPilot AI assistant. I can analyze your subscriptions, find savings opportunities, and answer any financial questions you have. What would you like to know?",
+  content: "Hi! I'm your Nibrava Sub-Pilot AI assistant. I can analyze your subscriptions, find savings opportunities, and answer any financial questions you have. What would you like to know?",
   createdAt: new Date().toISOString(),
 };
 

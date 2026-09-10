@@ -62,7 +62,7 @@ const Hero = () => {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-2xl mx-auto"
           >
-            SubPilot automatically detects recurring payments, analyzes spending patterns, and gives you AI-driven insights to save money.
+            Nibrava Sub-Pilot automatically detects recurring payments, analyzes spending patterns, and gives you AI-driven insights to save money.
           </motion.p>
 
           {/* CTA Buttons */}

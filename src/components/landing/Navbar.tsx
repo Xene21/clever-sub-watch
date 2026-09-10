@@ -18,7 +18,7 @@ const Navbar = () => {
             <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <Plane className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="font-display text-xl font-bold">SubPilot</span>
+            <span className="font-display text-xl font-bold">Nibrava Sub-Pilot</span>
           </Link>
 
           {/* Nav Links */}
