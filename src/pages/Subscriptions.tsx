@@ -350,7 +350,7 @@ const SubscriptionsPage = () => {
                         <TableCell className="text-right text-muted-foreground">
                           {new Date(sub.nextBillingDate).toLocaleDateString()}
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
