@@ -392,14 +392,14 @@ const ConnectBank = () => {
                 <QuilttAuthProvider token={sessionToken}>
                   <QuilttButton
                     connectorId={CONNECTOR_ID}
-                    onExitSuccess={(connectionId: any, metadata: any) => {
-                      console.log('Quiltt onExitSuccess:', { connectionId, metadata });
+                    onExitSuccess={(metadata: any) => {
+                      console.log('Quiltt onExitSuccess metadata:', metadata);
+                      const connectionId = metadata?.connectionId;
                       const instName =
                         metadata?.institution?.name ??
-                        metadata?.connection?.institution?.name ??
-                        metadata?.institutionName ??
+                        metadata?.connectorSession?.institution?.name ??
                         null;
-                      handleQuilttSuccess(connectionId, { ...metadata, institution: { name: instName } });
+                      handleQuilttSuccess(connectionId, { institution: { name: instName } });
                     }}
                     onExit={() => setError(null)}
                   >

@@ -176,9 +176,9 @@ const AIInsights = () => {
   }, {});
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
 
-      <main className="h-screen flex">
+      <main className="h-screen flex relative">
         {/* History Sidebar */}
         <AnimatePresence initial={false}>
           {historyOpen && (
@@ -244,16 +244,18 @@ const AIInsights = () => {
         </AnimatePresence>
 
         {/* Toggle button */}
-        <button
+        <motion.button
+          initial={false}
+          animate={{ x: historyOpen ? 260 : 0 }}
+          transition={{ duration: 0.2, ease: 'easeInOut' }}
           onClick={() => setHistoryOpen(o => !o)}
-          className="absolute left-64 top-1/2 -translate-y-1/2 z-10 w-5 h-10 bg-card border border-border rounded-r-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          style={{ marginLeft: historyOpen ? '260px' : '0px', transition: 'margin 0.2s ease-in-out' }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-5 h-10 bg-card border border-border rounded-r-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors shadow-sm"
         >
           {historyOpen ? <ChevronLeft className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-        </button>
+        </motion.button>
 
         {/* Chat area */}
-        <div className="flex-1 flex flex-col h-screen min-w-0">
+        <div className="flex-1 flex flex-col h-screen min-w-0 relative z-10">
           {/* Header */}
           <div className="border-b border-border p-6 shrink-0">
             <div className="flex items-center gap-3">
