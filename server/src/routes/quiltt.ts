@@ -71,15 +71,20 @@ router.post('/session', async (req: AuthRequest, res) => {
 // POST /api/quiltt/connection
 // Called by the frontend after the Quiltt Connector succeeds.
 // Stores the new connection and triggers an initial transaction sync.
-// Body: { connectionId, institutionName }
+// Body: { connectionId }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/connection', async (req: AuthRequest, res) => {
   try {
-    const { connectionId, institutionName } = req.body;
+    const { connectionId } = req.body;
 
     if (!connectionId) {
       return res.status(400).json({ error: 'connectionId is required' });
     }
+
+    // Fetch institution name directly from Quiltt GraphQL — the frontend callback
+    // metadata does NOT include the institution name, so we must resolve it server-side.
+    const institutionName = await fetchInstitutionName(connectionId);
+    console.log(`[Quiltt] connectionId=${connectionId} institution=${institutionName}`);
 
     // Upsert: if somehow the same connection comes in twice, don't duplicate it
     const connection = await prisma.quilttConnection.upsert({
@@ -96,6 +101,7 @@ router.post('/connection', async (req: AuthRequest, res) => {
 
     // Immediately sync transactions for this connection
     const transactions = await fetchQuilttTransactions(req.userId!, connectionId);
+    console.log(`[Quiltt] fetched ${transactions.length} transactions for ${institutionName}`);
     const { detected } = await runRecurringEngine(req.userId!, transactions, connection.id);
 
     await prisma.quilttConnection.update({
@@ -215,6 +221,37 @@ interface QuilttTransaction {
   date: string;        // YYYY-MM-DD
   category: string[] | null;
   pending: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fetch institution name from Quiltt GraphQL for a given connectionId
+// ─────────────────────────────────────────────────────────────────────────────
+async function fetchInstitutionName(quilttConnectionId: string): Promise<string | null> {
+  const apiSecret = process.env.QUILTT_API_SECRET!;
+  const query = `
+    query GetConnectionInstitution($connectionId: ID!) {
+      connection(id: $connectionId) {
+        institution {
+          name
+        }
+      }
+    }
+  `;
+  try {
+    const response = await fetch('https://api.quiltt.io/v1/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiSecret}`,
+      },
+      body: JSON.stringify({ query, variables: { connectionId: quilttConnectionId } }),
+    });
+    const json = await response.json() as any;
+    return json?.data?.connection?.institution?.name ?? null;
+  } catch (err) {
+    console.error('[Quiltt] Failed to fetch institution name:', err);
+    return null;
+  }
 }
 
 async function fetchQuilttTransactions(
