@@ -261,53 +261,26 @@ async function fetchQuilttTransactions(
   const apiSecret = process.env.QUILTT_API_SECRET!;
   const cutoffMs = Date.now() - 730 * 24 * 60 * 60 * 1000;
 
-  // Step 1: Get all account IDs for this connection
-  // accounts is a plain array on the connection, NOT a paginated connection type
-  const accountsQuery = `
-    query GetAccounts($connectionId: ID!) {
-      connection(id: $connectionId) {
-        accounts {
-          id
+  // Correct Quiltt schema: top-level transactions query with edges/node pagination
+  // Amounts in Quiltt are signed — negative = debit (money out)
+  const query = `
+    query GetTransactions($after: String) {
+      transactions(
+        after: $after
+        filter: { entryType: DEBIT }
+      ) {
+        pageInfo {
+          hasNextPage
+          endCursor
         }
-      }
-    }
-  `;
-
-  const accountsRes = await fetch(QUILTT_API_URL, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiSecret}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: accountsQuery, variables: { connectionId: quilttConnectionId } }),
-  });
-
-  const accountsJson = await accountsRes.json() as any;
-
-  if (accountsJson.errors) {
-    console.error('[Quiltt] Accounts query error:', JSON.stringify(accountsJson.errors, null, 2));
-    return [];
-  }
-
-  // accounts is a plain array (Account[]) not a paginated connection
-  const accounts: any[] = accountsJson?.data?.connection?.accounts ?? [];
-  console.log(`[Quiltt] Found ${accounts.length} account(s) for connection ${quilttConnectionId}`);
-
-  // Step 2: Paginate transactions for each account individually
-  const txQuery = `
-    query GetAccountTransactions($accountId: ID!, $after: String) {
-      account(id: $accountId) {
-        transactions(
-          after: $after
-          filter: { entryType: DEBIT }
-        ) {
-          pageInfo {
-            hasNextPage
-            endCursor
-          }
-          nodes {
+        edges {
+          node {
             id
             amount
             description
             date
             status
+            entryType
             merchant {
               name
             }
@@ -318,46 +291,52 @@ async function fetchQuilttTransactions(
   `;
 
   const all: QuilttTransaction[] = [];
+  let cursor: string | null = null;
+  let hasMore = true;
 
-  for (const account of accounts) {
-    let cursor: string | null = null;
-    let hasMore = true;
+  while (hasMore) {
+    const res = await fetch(QUILTT_API_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiSecret}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables: { after: cursor } }),
+    });
 
-    while (hasMore) {
-      const res = await fetch(QUILTT_API_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiSecret}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: txQuery, variables: { accountId: account.id, after: cursor } }),
-      });
+    const json = await res.json() as any;
 
-      const json = await res.json() as any;
-      if (json.errors) {
-        console.error('[Quiltt] Transactions query error:', JSON.stringify(json.errors, null, 2));
-        break;
-      }
-
-      const txPage = json?.data?.account?.transactions;
-      if (!txPage) break;
-
-      for (const node of txPage.nodes) {
-        if (new Date(node.date).getTime() < cutoffMs) continue;
-        all.push({
-          transaction_id: node.id,
-          merchant_name:  node.merchant?.name ?? null,
-          name:           node.description ?? node.merchant?.name ?? '',
-          amount:         Math.abs(node.amount),
-          date:           node.date,
-          category:       null,
-          pending:        node.status === 'PENDING',
-        });
-      }
-
-      hasMore = txPage.pageInfo.hasNextPage;
-      cursor  = txPage.pageInfo.endCursor ?? null;
+    if (json.errors) {
+      console.error('[Quiltt] GraphQL error:', JSON.stringify(json.errors, null, 2));
+      break;
     }
+
+    const txData = json?.data?.transactions;
+    if (!txData) break;
+
+    for (const edge of txData.edges) {
+      const node = edge.node;
+      if (new Date(node.date).getTime() < cutoffMs) continue;
+
+      all.push({
+        transaction_id: node.id,
+        merchant_name:  node.merchant?.name ?? null,
+        name:           node.description ?? node.merchant?.name ?? '',
+        // Quiltt: negative = debit (money out). We want positive for our engine.
+        amount:         Math.abs(node.amount),
+        date:           node.date,
+        category:       null,
+        pending:        node.status === 'PENDING',
+      });
+    }
+
+    hasMore = txData.pageInfo.hasNextPage;
+    cursor  = txData.pageInfo.endCursor ?? null;
   }
 
-  console.log(`[Quiltt] Total transactions fetched: ${all.length}`);
+  // Filter to only transactions for this specific connection
+  // (the top-level query returns all transactions for the profile)
+  console.log(`[Quiltt] Total transactions fetched for profile: ${all.length}`);
   return all;
 }
 
