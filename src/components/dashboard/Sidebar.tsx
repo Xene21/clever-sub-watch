@@ -25,14 +25,15 @@ const navItems = [
 
 interface DashboardSidebarProps {
   mobileOpen?: boolean;
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
 }
 
 const springConfig = { type: 'spring', stiffness: 400, damping: 30 };
 
-const DashboardSidebar = ({ mobileOpen }: DashboardSidebarProps) => {
+const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
   const [userName, setUserName] = useState('User');
 
   useEffect(() => {
@@ -90,12 +91,13 @@ const DashboardSidebar = ({ mobileOpen }: DashboardSidebarProps) => {
         </Link>
         
         <motion.button
+          animate={{ rotate: collapsed ? 180 : 0 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setCollapsed(!collapsed)}
           className={cn(
-            "hidden md:flex p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground transition-transform z-10 shrink-0",
-            collapsed && "rotate-180 absolute -right-3 top-8 bg-[#080d16] border border-white/10 shadow-sm"
+            "hidden md:flex p-1.5 rounded-lg hover:bg-white/5 text-muted-foreground z-10 shrink-0",
+            collapsed && "absolute -right-3 top-8 bg-[#080d16] border border-white/10 shadow-sm"
           )}
         >
           <ChevronLeft className="w-4 h-4" />

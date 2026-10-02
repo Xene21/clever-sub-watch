@@ -64,7 +64,13 @@ const MERCHANT_CATEGORIES: Record<string, string> = {
   jetbrains: 'Productivity', autocad: 'Productivity',
   // AI Tools
   'github copilot': 'AI Tools', chatgpt: 'AI Tools', openai: 'AI Tools',
-  'claude ai': 'AI Tools', anthropic: 'AI Tools',
+  'claude ai': 'AI Tools', claude: 'AI Tools', anthropic: 'AI Tools',
+  gemini: 'AI Tools', 'google gemini': 'AI Tools',
+  perplexity: 'AI Tools', 'perplexity ai': 'AI Tools',
+  midjourney: 'AI Tools', 'hugging face': 'AI Tools', huggingface: 'AI Tools',
+  'stability ai': 'AI Tools', 'copy.ai': 'AI Tools', copyai: 'AI Tools',
+  jasper: 'AI Tools', cursor: 'AI Tools', replicate: 'AI Tools',
+  runway: 'AI Tools', runwayml: 'AI Tools', elevenlabs: 'AI Tools',
   // Cloud Storage
   google: 'Cloud Storage', 'google one': 'Cloud Storage', aws: 'Cloud Storage',
   icloud: 'Cloud Storage', digitalocean: 'Cloud Storage', heroku: 'Cloud Storage',

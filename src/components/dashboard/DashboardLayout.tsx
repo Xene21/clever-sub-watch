@@ -3,9 +3,11 @@ import { Outlet, useLocation } from 'react-router-dom';
 import DashboardSidebar from './Sidebar';
 import { Menu, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -20,7 +22,7 @@ export default function DashboardLayout() {
           <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20">
             <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
           </div>
-          <span className="font-display text-base font-semibold tracking-tight">Sub-Pilot</span>
+          <span className="font-display text-base font-semibold tracking-tight">Subpilot</span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -66,12 +68,23 @@ export default function DashboardLayout() {
         )}
       </AnimatePresence>
 
-      <DashboardSidebar mobileOpen={mobileOpen} />
+      <DashboardSidebar 
+        mobileOpen={mobileOpen} 
+        collapsed={collapsed} 
+        setCollapsed={setCollapsed} 
+      />
 
       {/* Main Content */}
-      <main className="flex-1 w-full pt-14 md:pt-0 md:ml-64 min-h-screen">
+      <motion.main 
+        layout
+        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+        className={cn(
+          "flex-1 w-full pt-14 md:pt-0 min-h-screen",
+          collapsed ? "md:ml-20" : "md:ml-64"
+        )}
+      >
         <Outlet />
-      </main>
+      </motion.main>
     </div>
   );
 }
