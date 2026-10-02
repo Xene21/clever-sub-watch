@@ -186,11 +186,11 @@ const Settings = () => {
         ]);
         content = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
         mimeType = 'text/csv';
-        filename = `Nibrava Sub-Pilot-subscriptions-${date}.csv`;
+        filename = `Subpilot-subscriptions-${date}.csv`;
       } else {
         content = JSON.stringify(subs, null, 2);
         mimeType = 'application/json';
-        filename = `Nibrava Sub-Pilot-subscriptions-${date}.json`;
+        filename = `Subpilot-subscriptions-${date}.json`;
       }
 
       const blob = new Blob([content], { type: mimeType });
@@ -290,7 +290,7 @@ const Settings = () => {
             <TabsTrigger value="personal" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Personal Info</TabsTrigger>
             <TabsTrigger value="banks" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Bank Connections</TabsTrigger>
             <TabsTrigger value="export" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background">Export Data</TabsTrigger>
-            <TabsTrigger value="danger" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Danger Zone</TabsTrigger>
+            <TabsTrigger value="danger" className="flex-shrink-0 h-auto py-2 px-4 whitespace-nowrap data-[state=active]:bg-background text-destructive data-[state=active]:text-destructive">Account Deletion</TabsTrigger>
           </TabsList>
 
           {/* Personal Info Tab */}
@@ -485,7 +485,7 @@ const Settings = () => {
                 <p className="text-muted-foreground text-sm">
                   Your connection is secured by Quiltt, an open-banking platform trusted by
                   thousands of apps. We use AES-256 encryption and never store your banking
-                  credentials. Nibrava Sub-Pilot has read-only access — we cannot move money.
+                  credentials. Subpilot has read-only access — we cannot move money.
                 </p>
               </div>
             </motion.div>
@@ -571,7 +571,7 @@ const Settings = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  This will remove <strong>{bank.name}</strong> from Nibrava Sub-Pilot
+                                  This will remove <strong>{bank.name}</strong> from Subpilot
                                   and stop syncing transactions. Auto-detected subscriptions from this
                                   bank will remain in your dashboard.
                                 </AlertDialogDescription>
@@ -609,7 +609,7 @@ const Settings = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6">
-                Nibrava Sub-Pilot analyses up to 24 months of transaction history to detect recurring
+                Subpilot analyses up to 24 months of transaction history to detect recurring
                 payments. The whole process takes under 60 seconds.
               </p>
 
@@ -743,7 +743,7 @@ const Settings = () => {
                 <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
                   <AlertCircle className="w-5 h-5 text-destructive" />
                 </div>
-                <h2 className="text-xl font-semibold text-destructive">Danger Zone</h2>
+                <h2 className="text-xl font-semibold text-destructive">Account Deletion</h2>
               </div>
 
               <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">

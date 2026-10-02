@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Subscription } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { Calendar, MoreHorizontal, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -22,18 +23,27 @@ interface SubscriptionCardProps {
 
 const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCardProps) => {
   const queryClient = useQueryClient();
+  const [isHovered, setIsHovered] = useState(false);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const getDaysUntil = (dateString: string) => {
+    const nextDate = new Date(dateString);
+    const today = new Date();
+    // Assuming nextDate is in the future.
+    const diffTime = nextDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'today';
+    if (diffDays === 1) return 'in 1d';
+    return `in ${diffDays}d`;
   };
 
-  const statusColors = {
-    active: 'bg-success/10 text-success',
-    paused: 'bg-warning/10 text-warning',
-    cancelled: 'bg-destructive/10 text-destructive',
-    trial: 'bg-primary/10 text-primary',
+  const statusConfig = {
+    active: { bg: 'bg-success/10', text: 'text-success', dot: 'bg-success' },
+    paused: { bg: 'bg-warning/10', text: 'text-warning', dot: 'bg-warning' },
+    cancelled: { bg: 'bg-destructive/10', text: 'text-destructive', dot: 'bg-destructive' },
+    trial: { bg: 'bg-primary/10', text: 'text-primary', dot: 'bg-primary' },
   };
+
+  const currentStatus = statusConfig[subscription.status];
 
   const handleToggleStatus = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,77 +78,96 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
     }
   };
 
+  const springTransition = { type: 'spring', stiffness: 400, damping: 30 };
+
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3, delay }}
-      className="glass-card-hover p-4 cursor-pointer group"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay, ...springTransition }}
+      whileHover={{ backgroundColor: 'rgba(255,255,255,0.03)' }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      whileTap={{ scale: 0.98 }}
+      className="glass-card-hover p-4 cursor-pointer group relative overflow-hidden flex items-center justify-between border border-white/5 rounded-xl"
       onClick={onClick}
     >
-      <div className="flex items-center justify-between gap-2 sm:gap-4">
-        {/* Left Section: Logo & Info */}
-        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-          {/* Logo - responsive sizing */}
-          <BrandLogo logo={subscription.logo} color={subscription.color} size="md" className="sm:hidden" />
-          <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" className="hidden sm:flex" />
+      {/* Active Indicator Bar */}
+      {subscription.status === 'active' && (
+        <div className="absolute left-0 top-3 bottom-3 w-0.5 rounded-full bg-success" />
+      )}
 
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5 sm:mb-1">
-              <h3 className="font-semibold truncate text-sm sm:text-base">{subscription.merchant}</h3>
-              <span className={cn("text-[10px] sm:text-xs px-2 py-0.5 rounded-full capitalize shrink-0", statusColors[subscription.status])}>
-                {subscription.status}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-muted-foreground truncate">
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-              <span className="truncate">Next: {formatDate(subscription.nextBillingDate)}</span>
-              <span className="text-border hidden sm:inline">•</span>
-              <span className="capitalize hidden sm:inline">{subscription.frequency}</span>
-            </div>
+      {/* Left side */}
+      <div className="flex items-center gap-4 flex-1">
+        <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" />
+        <div className="flex flex-col">
+          <h3 className="font-semibold tracking-tight text-sm sm:text-base text-foreground">{subscription.merchant}</h3>
+          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-widest font-medium">
+            <Calendar className="w-3 h-3" />
+            <span>{getDaysUntil(subscription.nextBillingDate)}</span>
           </div>
         </div>
-
-        {/* Right Section: Amount & Actions */}
-        <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-          <div className="text-right">
-            <p className="font-display text-sm sm:text-xl font-bold">
-              ${subscription.amount.toFixed(2)}
-            </p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground">/{subscription.frequency === 'yearly' ? 'yr' : 'mo'}</p>
-          </div>
-
-          {/* Actions */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 -mr-2 sm:mr-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0">
-                <MoreHorizontal className="w-4 h-4" />
-              </Button>
-            </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-popover border-border">
-            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleToggleStatus}>
-              {subscription.status === 'active' ? (
-                <><PauseCircle className="mr-2 h-4 w-4" />Pause</>
-              ) : (
-                <><PlayCircle className="mr-2 h-4 w-4" />Resume</>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
+
+      {/* Right side */}
+      <div className="flex items-center gap-6">
+        {/* Status Badge */}
+        <div className={cn("hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-medium tracking-wide uppercase", currentStatus.bg, currentStatus.text)}>
+          <span className={cn("w-1.5 h-1.5 rounded-full", currentStatus.dot)} />
+          {subscription.status}
+        </div>
+
+        {/* Amount & Frequency */}
+        <div className="flex flex-col items-end">
+          <span className="font-mono tabular-nums font-bold text-lg text-foreground">
+            ${subscription.amount.toFixed(2)}
+          </span>
+          <span className="text-[10px] uppercase tracking-widest text-muted-foreground/60">
+            /{subscription.frequency === 'yearly' ? 'yr' : 'mo'}
+          </span>
+        </div>
+
+        {/* Actions Dropdown */}
+        <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={springTransition}
+                className="absolute inset-0"
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 bg-background/50 backdrop-blur-sm border border-white/5 hover:bg-white/10">
+                      <MoreHorizontal className="w-4 h-4 text-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-popover/90 backdrop-blur-md border-white/10 shadow-2xl">
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+                      View Details
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleToggleStatus}>
+                      {subscription.status === 'active' ? (
+                        <><PauseCircle className="mr-2 h-4 w-4" />Pause</>
+                      ) : (
+                        <><PlayCircle className="mr-2 h-4 w-4" />Resume</>
+                      )}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-white/5" />
+                    <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                      <Trash2 className="mr-2 h-4 w-4" />Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   );
 };
 
 export default SubscriptionCard;
-
-

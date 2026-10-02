@@ -86,10 +86,44 @@ const ConnectBank = () => {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      toast.success(
-        `${data.institutionName ?? 'Bank'} connected! ${data.subscriptionsDetected} subscription(s) detected.`
-      );
-      await fetchItems();
+      
+      const bankName = data.institutionName ?? 'Bank';
+      
+      if (data.subscriptionsDetected > 0) {
+        toast.success(`${bankName} connected! ${data.subscriptionsDetected} subscription(s) detected.`);
+        await fetchItems();
+      } else {
+        // Initial 0 detected: start background polling
+        const toastId = toast.loading(`${bankName} connected. Reading historical transactions...`);
+        let attempts = 0;
+        const maxAttempts = 6; // Poll every 15s for 1.5 mins
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const syncRes = await fetch('/api/quiltt/sync', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ itemId: data.itemId }),
+            });
+            const syncData = await syncRes.json();
+            
+            if (syncData.detected > 0) {
+              toast.success(`Analysis complete! Found ${syncData.detected} subscription(s) in ${bankName}.`, { id: toastId });
+              clearInterval(pollInterval);
+              fetchItems();
+            } else if (attempts >= maxAttempts) {
+              toast.info(`Finished analyzing ${bankName}. No subscriptions detected yet.`, { id: toastId });
+              clearInterval(pollInterval);
+              fetchItems();
+            }
+          } catch (e) {
+            // Silently fail the poll attempt and try again next tick
+          }
+        }, 15000);
+      }
+      
       // Refresh session token so the connector can be opened again
       await fetchSessionToken();
     } catch {
@@ -200,7 +234,7 @@ const ConnectBank = () => {
             <p className="text-muted-foreground text-sm">
               Your connection is secured by Quiltt, an open-banking platform trusted by
               thousands of apps. We use AES-256 encryption and never store your banking
-              credentials. Nibrava Sub-Pilot has read-only access — we cannot move money.
+              credentials. Subpilot has read-only access — we cannot move money.
             </p>
           </div>
         </motion.div>
@@ -292,7 +326,7 @@ const ConnectBank = () => {
                             <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
                             <AlertDialogDescription>
                               This will remove{' '}
-                              <strong>{item.institutionName ?? 'this bank'}</strong> from Nibrava Sub-Pilot
+                              <strong>{item.institutionName ?? 'this bank'}</strong> from Subpilot
                               and stop syncing transactions. Auto-detected subscriptions from this
                               bank will remain in your dashboard.
                             </AlertDialogDescription>
@@ -332,7 +366,7 @@ const ConnectBank = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6">
-                Nibrava Sub-Pilot analyses up to 24 months of transaction history to detect recurring
+                Subpilot analyses up to 24 months of transaction history to detect recurring
                 payments. The whole process takes under 60 seconds.
               </p>
 
@@ -358,9 +392,15 @@ const ConnectBank = () => {
                 <QuilttAuthProvider token={sessionToken}>
                   <QuilttButton
                     connectorId={CONNECTOR_ID}
-                    onExitSuccess={(metadata: any) =>
-                      handleQuilttSuccess(metadata?.connectionId, metadata)
-                    }
+                    onExitSuccess={(connectionId: any, metadata: any) => {
+                      console.log('Quiltt onExitSuccess:', { connectionId, metadata });
+                      const instName =
+                        metadata?.institution?.name ??
+                        metadata?.connection?.institution?.name ??
+                        metadata?.institutionName ??
+                        null;
+                      handleQuilttSuccess(connectionId, { ...metadata, institution: { name: instName } });
+                    }}
                     onExit={() => setError(null)}
                   >
                     <Button size="lg" className="gap-2" id="quiltt-connect-button">

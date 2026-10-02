@@ -1,56 +1,69 @@
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { motion, useScroll, useMotionValueEvent } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Plane } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-const Navbar = () => {
+export function Navbar() {
+  const { scrollY } = useScroll();
+  const [scrolled, setScrolled] = useState(false);
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    if (latest > 20) {
+      setScrolled(true);
+    } else {
+      setScrolled(false);
+    }
+  });
+
   return (
-    <motion.nav
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="fixed top-0 left-0 right-0 z-50"
-    >
-      <div className="mx-4 mt-4">
-        <div className="glass-card px-6 py-3 flex items-center justify-between max-w-6xl mx-auto">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Plane className="w-5 h-5 text-primary-foreground" />
+    <div className="fixed top-0 left-0 right-0 z-50 pt-4 px-4 pointer-events-none">
+      <motion.nav
+        initial={{ y: -100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className={`pointer-events-auto max-w-2xl mx-auto rounded-full border transition-all duration-300 ${
+          scrolled 
+            ? 'border-white/20 bg-background/80 backdrop-blur-xl shadow-lg shadow-black/20' 
+            : 'border-white/10 bg-background/60 backdrop-blur-md'
+        }`}
+      >
+        <div className="flex items-center justify-between h-14 px-4 sm:px-6">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/40 text-primary-foreground group-hover:shadow-glow transition-all">
+              <Sparkles className="w-4 h-4" />
             </div>
-            <span className="font-display text-xl font-bold">Nibrava Sub-Pilot</span>
+            <span className="font-display font-medium tracking-tight text-sm">Sub-Pilot</span>
           </Link>
 
-          {/* Nav Links */}
-          <div className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-              Features
-            </a>
-            <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-              Pricing
-            </a>
-            <a href="#security" className="text-muted-foreground hover:text-foreground transition-colors">
-              Security
-            </a>
+          <div className="hidden md:flex items-center gap-6">
+            {['Features', 'Security', 'Pricing'].map((item) => (
+              <Link 
+                key={item} 
+                to={`#${item.toLowerCase()}`}
+                className="text-[13px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+              >
+                {item}
+              </Link>
+            ))}
           </div>
 
-          {/* Auth Buttons */}
-          <div className="flex items-center gap-2 md:gap-3">
+          <div className="flex items-center gap-2">
             <Link to="/login">
-              <Button variant="ghost" size="sm" className="px-2 md:px-4">
+              <Button variant="ghost" size="sm" className="h-8 text-xs px-4 hidden sm:inline-flex text-muted-foreground hover:text-foreground">
                 Log in
               </Button>
             </Link>
             <Link to="/signup">
-              <Button variant="default" size="sm" className="px-3 md:px-4">
+              <Button size="sm" className="h-8 text-xs px-4 bg-primary text-primary-foreground hover:bg-primary/90">
                 Get Started
               </Button>
             </Link>
           </div>
         </div>
-      </div>
-    </motion.nav>
+      </motion.nav>
+    </div>
   );
-};
+}
 
 export default Navbar;

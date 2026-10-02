@@ -1,23 +1,33 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import StatCard from '@/components/dashboard/StatCard';
 import SubscriptionCard from '@/components/dashboard/SubscriptionCard';
 import SpendingChart from '@/components/dashboard/SpendingChart';
 import SubscriptionDetail from '@/components/dashboard/SubscriptionDetail';
-import { 
-  calculateMonthlySpend, 
+import {
+  calculateMonthlySpend,
   calculateMonthlySpendChange,
   calculateActiveSubscriptionsChange,
   calculateYearlySpend,
-  Subscription 
+  Subscription
 } from '@/lib/mock-data';
 import { api } from '@/lib/api';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
-import { DollarSign, CreditCard, TrendingUp, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  DollarSign, CreditCard, TrendingUp, AlertCircle,
+  Search, SlidersHorizontal, ArrowUpRight, Sparkles, Loader2
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, SlidersHorizontal } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'react-router-dom';
+
+const sortOptions = [
+  { key: 'amount', label: 'Highest Spend' },
+  { key: 'date', label: 'Next Billing' },
+  { key: 'name', label: 'Name' },
+] as const;
 
 const Dashboard = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
@@ -31,6 +41,7 @@ const Dashboard = () => {
     retry: false,
     staleTime: 1000 * 60 * 5,
   });
+
   const cachedName = localStorage.getItem('userName');
   const fullName = userData?.user?.name || cachedName;
   const firstName = fullName ? fullName.split(' ')[0] : 'back';
@@ -44,8 +55,7 @@ const Dashboard = () => {
     .filter(s => s.status === 'active')
     .filter(s => {
       const nextDate = new Date(s.nextBillingDate);
-      const today = new Date();
-      const daysUntil = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const daysUntil = Math.ceil((nextDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
       return daysUntil <= 7 && daysUntil >= 0;
     }).length;
 
@@ -59,25 +69,41 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="p-4 md:p-8">
-        {/* Header */}
+      <main className="p-4 md:p-8 max-w-7xl mx-auto">
+
+        {/* ── Header ── */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+          className="mb-8 flex items-start justify-between gap-4"
         >
-          <h1 className="font-display text-3xl font-bold mb-2">Welcome {firstName}!</h1>
-          <p className="text-muted-foreground">Track and manage all your subscriptions in one place.</p>
+          <div>
+            <p className="text-[11px] font-medium tracking-widest uppercase text-muted-foreground/60 mb-1">
+              Overview
+            </p>
+            <h1 className="font-display text-2xl md:text-3xl font-bold tracking-tight">
+              Welcome back, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Here's what's happening with your subscriptions.
+            </p>
+          </div>
+          <Link to="/dashboard/insights">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-white/10 bg-white/5 hover:bg-white/10 text-sm shrink-0 hidden md:flex"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-primary" />
+              AI Insights
+              <ArrowUpRight className="w-3 h-3 opacity-50" />
+            </Button>
+          </Link>
         </motion.div>
 
-        {isLoading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : (
-          <>
-            {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
           <StatCard
             title="Monthly Spend"
             value={`$${monthlySpend.toFixed(2)}`}
@@ -90,87 +116,179 @@ const Dashboard = () => {
             title="Yearly Spend"
             value={`$${yearlySpend.toFixed(2)}`}
             icon={TrendingUp}
-            delay={0.1}
+            delay={0.05}
           />
           <StatCard
-            title="Active Subscriptions"
+            title="Active"
             value={activeCount.toString()}
             change={`${activeCountChange >= 0 ? '+' : ''}${activeCountChange}`}
             changeType={activeCountChange > 0 ? 'negative' : activeCountChange < 0 ? 'positive' : 'neutral'}
             icon={CreditCard}
-            delay={0.2}
+            delay={0.1}
           />
           <StatCard
-            title="Renewals This Week"
+            title="Renewing Soon"
             value={upcomingRenewals.toString()}
             icon={AlertCircle}
-            delay={0.3}
+            delay={0.15}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Subscriptions List */}
+        {/* ── Main Grid ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Subscriptions Panel */}
           <div className="lg:col-span-2">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-              className="glass-card p-6"
+              transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.15 }}
+              className="rounded-xl border border-white/8 bg-card/40 backdrop-blur-sm overflow-hidden"
             >
-              {/* Search and Filter */}
-              <div className="flex items-center gap-4 mb-6">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              {/* Panel Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/6">
+                <div>
+                  <h2 className="font-display font-semibold tracking-tight text-sm">Subscriptions</h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {isLoading ? '—' : `${activeCount} active`}
+                  </p>
+                </div>
+                <Link to="/dashboard/subscriptions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
+                  >
+                    View all
+                    <ArrowUpRight className="w-3 h-3" />
+                  </Button>
+                </Link>
+              </div>
+
+              {/* Search + Sort */}
+              <div className="px-5 pt-4 pb-3 border-b border-white/6 space-y-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60" />
                   <Input
                     placeholder="Search subscriptions..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-11 bg-secondary/50 border-border/50"
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="pl-9 h-8 text-sm bg-white/5 border-white/8 focus:border-primary/40 placeholder:text-muted-foreground/40"
                   />
                 </div>
-                <Button variant="outline" size="icon">
-                  <SlidersHorizontal className="w-4 h-4" />
-                </Button>
-              </div>
 
-              {/* Sort tabs */}
-              <div className="flex items-center gap-2 mb-6 overflow-x-auto no-scrollbar pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
-                {(['amount', 'date', 'name'] as const).map((sort) => (
-                  <button
-                    key={sort}
-                    onClick={() => setSortBy(sort)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize whitespace-nowrap shrink-0 ${
-                      sortBy === sort 
-                        ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary/50 text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {sort === 'date' ? 'Next Billing' : sort}
-                  </button>
-                ))}
+                {/* Sort tabs */}
+                <div className="flex items-center gap-1 relative">
+                  {sortOptions.map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setSortBy(opt.key)}
+                      className={`relative px-3 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                        sortBy === opt.key
+                          ? 'text-foreground'
+                          : 'text-muted-foreground hover:text-foreground/80'
+                      }`}
+                    >
+                      {sortBy === opt.key && (
+                        <motion.span
+                          layoutId="sort-pill"
+                          className="absolute inset-0 bg-white/8 rounded-md"
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <span className="relative z-10">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* List */}
-              <div className="space-y-3">
-                {filteredSubscriptions.map((sub, index) => (
-                  <SubscriptionCard
-                    key={sub.id}
-                    subscription={sub}
-                    delay={0.05 * index}
-                    onClick={() => setSelectedSubscription(sub)}
-                  />
-                ))}
+              <div className="p-3 space-y-1 min-h-[200px]">
+                {isLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3">
+                      <Skeleton className="w-9 h-9 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-3 w-32" />
+                        <Skeleton className="h-2.5 w-20" />
+                      </div>
+                      <Skeleton className="h-4 w-14" />
+                    </div>
+                  ))
+                ) : filteredSubscriptions.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex flex-col items-center justify-center py-12 text-center"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center mb-3">
+                      <CreditCard className="w-5 h-5 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {searchQuery ? 'No results found' : 'No subscriptions yet'}
+                    </p>
+                    <p className="text-xs text-muted-foreground/50 mt-1">
+                      {searchQuery ? 'Try a different search term' : 'Connect your bank to detect them automatically'}
+                    </p>
+                    {!searchQuery && (
+                      <Link to="/dashboard/connect">
+                        <Button size="sm" className="mt-4 gap-1.5 h-8 text-xs">
+                          Connect Bank
+                        </Button>
+                      </Link>
+                    )}
+                  </motion.div>
+                ) : (
+                  <AnimatePresence>
+                    {filteredSubscriptions.slice(0, 8).map((sub, index) => (
+                      <SubscriptionCard
+                        key={sub.id}
+                        subscription={sub}
+                        delay={0.03 * index}
+                        onClick={() => setSelectedSubscription(sub)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                )}
               </div>
             </motion.div>
           </div>
 
-          {/* Chart */}
-          <div>
-            <SpendingChart subscriptions={subscriptions} />
+          {/* Chart Column */}
+          <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.2 }}
+            >
+              <SpendingChart subscriptions={subscriptions} />
+            </motion.div>
+
+            {/* Quick tip card */}
+            {upcomingRenewals > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.25 }}
+                className="rounded-xl border border-warning/20 bg-warning/5 p-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-warning/15 flex items-center justify-center shrink-0 mt-0.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-warning" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-warning">
+                      {upcomingRenewals} renewal{upcomingRenewals > 1 ? 's' : ''} this week
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      Review your upcoming charges to make sure nothing surprises you.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
-        </>
-        )}
       </main>
 
       {/* Detail Modal */}

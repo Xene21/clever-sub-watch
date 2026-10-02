@@ -16,7 +16,7 @@ const port = process.env.PORT || 3000;
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:8080',
-  'https://subpilot.nibravalabs.com',
+  'https://subpilot.subpilotlabs.com',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
