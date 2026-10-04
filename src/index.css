@@ -95,6 +95,32 @@
   input[type='number'] {
     -moz-appearance: textfield;
   }
+
+  /* Subpilot Custom Scrollbar (Firefox) */
+  html {
+    scrollbar-color: hsl(43 57% 52% / 0.8) transparent;
+    scrollbar-width: thin;
+  }
+
+  /* Subpilot Custom Scrollbar (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(222 30% 25%);
+    border-radius: 10px;
+    transition: background 0.2s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(43 57% 52% / 0.8);
+  }
 }
 
 @layer components {
