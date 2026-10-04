@@ -81,7 +81,7 @@ const ConnectBank = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           connectionId,
-          institutionName: metadata?.institution?.name ?? null,
+          sessionToken, // pass the profile-scoped token so the server can query Quiltt on our behalf
         }),
       });
       if (!res.ok) throw new Error();
@@ -95,6 +95,9 @@ const ConnectBank = () => {
       } else {
         // Initial 0 detected: start background polling
         const toastId = toast.loading(`${bankName} connected. Reading historical transactions...`);
+        // Immediately fetch items so the bank shows up in the UI right away
+        await fetchItems();
+        
         let attempts = 0;
         const maxAttempts = 6; // Poll every 15s for 1.5 mins
 

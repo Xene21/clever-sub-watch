@@ -75,15 +75,21 @@ router.post('/session', async (req: AuthRequest, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/connection', async (req: AuthRequest, res) => {
   try {
-    const { connectionId } = req.body;
+    const { connectionId, sessionToken } = req.body;
 
     if (!connectionId) {
       return res.status(400).json({ error: 'connectionId is required' });
     }
 
-    // Fetch institution name directly from Quiltt GraphQL — the frontend callback
-    // metadata does NOT include the institution name, so we must resolve it server-side.
-    const institutionName = await fetchInstitutionName(connectionId);
+    if (!sessionToken) {
+      return res.status(400).json({ error: 'sessionToken is required' });
+    }
+
+    // Use the session token (profile-scoped Bearer) for Quiltt GraphQL queries.
+    // This avoids any server-side IP restrictions since the token was minted
+    // by the frontend which is running in the user's browser.
+    const authHeader = `Bearer ${sessionToken}`;
+    const institutionName = await fetchInstitutionName(connectionId, authHeader);
     console.log(`[Quiltt] connectionId=${connectionId} institution=${institutionName}`);
 
     // Upsert: if somehow the same connection comes in twice, don't duplicate it
@@ -100,7 +106,7 @@ router.post('/connection', async (req: AuthRequest, res) => {
     });
 
     // Immediately sync transactions for this connection
-    const transactions = await fetchQuilttTransactions(req.userId!, connectionId);
+    const transactions = await fetchQuilttTransactions(req.userId!, connectionId, authHeader);
     console.log(`[Quiltt] fetched ${transactions.length} transactions for ${institutionName}`);
     const { detected } = await runRecurringEngine(req.userId!, transactions, connection.id);
 
@@ -138,7 +144,16 @@ router.post('/sync', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Bank account not found' });
     }
 
-    const transactions = await fetchQuilttTransactions(req.userId!, connection.quilttId);
+    const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+    const profileId = user?.quilttProfileId;
+    const apiSecret = process.env.QUILTT_API_SECRET!;
+    // Use Basic Auth (profileId:apiSecret) — sync runs server-side from Render (US), not blocked
+    const sessionToken = profileId
+      ? Buffer.from(`${profileId}:${apiSecret}`).toString('base64')
+      : '';
+    const authHeader = profileId ? `Basic ${sessionToken}` : `Bearer ${apiSecret}`;
+
+    const transactions = await fetchQuilttTransactions(req.userId!, connection.quilttId, authHeader);
     const { detected, updated } = await runRecurringEngine(req.userId!, transactions, connection.id);
 
     await prisma.quilttConnection.update({
@@ -226,8 +241,7 @@ interface QuilttTransaction {
 // ─────────────────────────────────────────────────────────────────────────────
 // Fetch institution name from Quiltt GraphQL for a given connectionId
 // ─────────────────────────────────────────────────────────────────────────────
-async function fetchInstitutionName(quilttConnectionId: string): Promise<string | null> {
-  const apiSecret = process.env.QUILTT_API_SECRET!;
+async function fetchInstitutionName(quilttConnectionId: string, authHeader: string): Promise<string | null> {
   const query = `
     query GetConnectionInstitution($connectionId: ID!) {
       connection(id: $connectionId) {
@@ -242,7 +256,7 @@ async function fetchInstitutionName(quilttConnectionId: string): Promise<string 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiSecret}`,
+        'Authorization': authHeader,
       },
       body: JSON.stringify({ query, variables: { connectionId: quilttConnectionId } }),
     });
@@ -256,9 +270,9 @@ async function fetchInstitutionName(quilttConnectionId: string): Promise<string 
 
 async function fetchQuilttTransactions(
   userId: string,
-  quilttConnectionId: string
+  quilttConnectionId: string,
+  authHeader: string
 ): Promise<QuilttTransaction[]> {
-  const apiSecret = process.env.QUILTT_API_SECRET!;
   const cutoffMs = Date.now() - 730 * 24 * 60 * 60 * 1000;
 
   // Correct Quiltt schema: top-level transactions query with edges/node pagination
@@ -298,7 +312,7 @@ async function fetchQuilttTransactions(
     const res = await fetch(QUILTT_API_URL, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiSecret}`,
+        Authorization: authHeader,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query, variables: { after: cursor } }),
