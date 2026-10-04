@@ -14,6 +14,8 @@ import SubscriptionsPage from "./pages/Subscriptions";
 import SubscriptionDetail from "./pages/SubscriptionDetail";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import FeaturesPage from "./pages/FeaturesPage";
+import HowItWorksPage from "./pages/HowItWorksPage";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +42,8 @@ const App = () => (
               <Route path="/dashboard/settings" element={<Settings />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/how-it-works" element={<HowItWorksPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

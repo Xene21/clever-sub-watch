@@ -37,15 +37,24 @@ export function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-6">
-            {['Features', 'Security', 'Pricing'].map((item) => (
-              <Link 
-                key={item} 
-                to={`#${item.toLowerCase()}`}
-                className="text-[13px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
-              >
-                {item}
-              </Link>
-            ))}
+            <Link 
+              to="/features"
+              className="text-[13px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Features
+            </Link>
+            <Link 
+              to="/how-it-works"
+              className="text-[13px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              How it works
+            </Link>
+            <Link 
+              to="/#pricing"
+              className="text-[13px] font-medium text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              Pricing
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
