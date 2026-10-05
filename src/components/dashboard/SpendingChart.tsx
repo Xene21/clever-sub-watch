@@ -13,12 +13,16 @@ const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
 
   const categoryGroups = groupByCategory(subscriptions.filter(s => s.status === 'active'));
   
+  const periodMultiplier = period === '3M' ? 3 : period === '6M' ? 6 : 12;
+
   const data = Object.entries(categoryGroups).map(([category, subs]) => ({
     name: category,
     value: subs.reduce((sum, sub) => {
-      if (sub.frequency === 'yearly') return sum + sub.amount / 12;
-      return sum + sub.amount;
-    }, 0),
+      let monthlyAmount = sub.amount;
+      if (sub.frequency === 'yearly') monthlyAmount = sub.amount / 12;
+      else if (sub.frequency === 'weekly') monthlyAmount = sub.amount * 4.33;
+      return sum + monthlyAmount;
+    }, 0) * periodMultiplier,
   })).sort((a, b) => b.value - a.value);
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -28,7 +32,7 @@ const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
           <p className="text-[10px] uppercase tracking-widest text-muted-foreground/80 mb-1">{payload[0].payload.name}</p>
           <p className="font-mono tabular-nums font-bold text-lg text-primary">
             ${payload[0].value.toFixed(2)}
-            <span className="text-xs text-muted-foreground font-sans font-normal ml-1">/mo</span>
+            <span className="text-xs text-muted-foreground font-sans font-normal ml-1">/{period.toLowerCase()}</span>
           </p>
         </div>
       );
@@ -72,23 +76,25 @@ const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
         </div>
       </div>
       
-      <div className="h-[280px] w-full mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(43 57% 65%)" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="hsl(43 57% 65%)" stopOpacity={0.2} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="name" 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)' }}
-              dy={10}
-            />
+      <div className="h-[280px] w-full mt-4 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'thin' }}>
+        <div style={{ minWidth: `max(100%, ${data.length * 100}px)`, height: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(43 57% 65%)" stopOpacity={0.8} />
+                  <stop offset="100%" stopColor="hsl(43 57% 65%)" stopOpacity={0.2} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} strokeDasharray="3 3" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)' }}
+                dy={10}
+                interval={0}
+              />
             <YAxis 
               axisLine={false} 
               tickLine={false} 
@@ -106,8 +112,9 @@ const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
                 <Cell key={`cell-${index}`} />
               ))}
             </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </motion.div>
   );

@@ -254,8 +254,56 @@ export async function runRecurringEngine(
   let updated = 0;
 
   for (const [, txGroup] of groups) {
-    // Need at least 2 transactions to identify a recurring pattern
-    if (txGroup.length < 2) continue;
+    // Need at least 2 transactions to detect a recurrence pattern.
+    // Exception: if the merchant is in our known-subscription dictionary and we have
+    // exactly 1 transaction, we still create it as a monthly subscription — this covers
+    // users with limited history or a freshly linked bank account.
+    if (txGroup.length < 2) {
+      const singleTx = txGroup[0];
+      const rawName = singleTx.merchant_name || singleTx.name;
+      const rawCategory = singleTx.category?.[0] ?? null;
+      const knownCategory = resolveMerchantCategory(rawName, rawCategory);
+
+      // Only auto-detect if it maps to a real category (i.e. it's in the merchant dict)
+      if (knownCategory === 'Other') continue;
+
+      const lastBillingDate = new Date(singleTx.date);
+      const billingCycleDay = lastBillingDate.getDate();
+      const nextBillingDate = computeNextBillingDate(lastBillingDate, 'monthly');
+
+      const existing = await prisma.subscription.findFirst({
+        where: { userId, name: { equals: rawName, mode: 'insensitive' }, detectionSource: 'quiltt' },
+      });
+
+      if (existing) {
+        await prisma.subscription.update({
+          where: { id: existing.id },
+          data: { price: singleTx.amount, billingCycleDay, lastBillingDate, nextBillingDate, transactionId: singleTx.transaction_id },
+        });
+        updated++;
+      } else {
+        detected++;
+        await prisma.subscription.create({
+          data: {
+            userId,
+            name: rawName,
+            price: singleTx.amount,
+            currency: 'USD',
+            billingCycle: 'monthly',
+            billingCycleDay,
+            startDate: lastBillingDate,
+            lastBillingDate,
+            nextBillingDate,
+            category: knownCategory,
+            status: 'active',
+            detectionSource: 'quiltt',
+            transactionId: singleTx.transaction_id,
+            connectionId,
+          },
+        });
+      }
+      continue;
+    }
 
     // Sort chronologically
     const sorted = txGroup.sort(
