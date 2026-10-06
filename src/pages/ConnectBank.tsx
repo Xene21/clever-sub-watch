@@ -345,9 +345,7 @@ const ConnectBank = () => {
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </motion.div>
+                      </AlertDialog></div></div></motion.div>
                 ))}
               </AnimatePresence>
             </div>
@@ -440,5 +438,6 @@ const ConnectBank = () => {
 };
 
 export default ConnectBank;
+
 
 
