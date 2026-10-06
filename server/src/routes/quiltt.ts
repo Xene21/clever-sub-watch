@@ -50,7 +50,7 @@ router.post('/session', async (req: AuthRequest, res) => {
       return res.status(500).json({ error: 'Failed to create Quiltt session' });
     }
 
-    const { token, profileId } = await authRes.json() as { token: string; profileId: string };
+    const { token, userId: profileId } = await authRes.json() as { token: string; userId: string };
 
     // Persist the profile ID if this is the first time
     if (!user.quilttProfileId && profileId) {
