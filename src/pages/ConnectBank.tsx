@@ -272,26 +272,26 @@ const ConnectBank = () => {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="glass-card p-5 flex items-center justify-between gap-4"
+                    className="glass-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <div className="flex items-start sm:items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                         <Landmark className="w-6 h-6 text-primary" />
                       </div>
                       <div>
                         <h3 className="font-semibold">
                           {item.institutionName ?? 'Connected Bank'}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Last synced: {formatSyncTime(item.lastSyncedAt)} ·{' '}
-                          <span className="text-primary font-medium">
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          Last synced: {formatSyncTime(item.lastSyncedAt)} &middot;{' '}
+                          <span className="text-primary font-medium block sm:inline mt-1 sm:mt-0">
                             {item.subscriptionsDetected} subscription(s) detected
                           </span>
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 self-end sm:self-auto w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
                       <div className="flex items-center gap-1 text-success mr-2">
                         <CheckCircle className="w-4 h-4" />
                         <span className="text-xs font-medium">Connected</span>

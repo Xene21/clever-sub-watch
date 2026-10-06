@@ -128,42 +128,30 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
         </div>
 
         {/* Actions Dropdown */}
-        <div className="relative w-8 h-8 flex items-center justify-center shrink-0">
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={springTransition}
-                className="absolute inset-0"
-              >
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 bg-background/50 backdrop-blur-sm border border-white/5 hover:bg-white/10">
-                      <MoreHorizontal className="w-4 h-4 text-foreground" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover/90 backdrop-blur-md border-white/10 shadow-2xl">
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
-                      View Details
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleToggleStatus}>
-                      {subscription.status === 'active' ? (
-                        <><PauseCircle className="mr-2 h-4 w-4" />Pause</>
-                      ) : (
-                        <><PlayCircle className="mr-2 h-4 w-4" />Resume</>
-                      )}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="bg-white/5" />
-                    <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                      <Trash2 className="mr-2 h-4 w-4" />Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        <div className="relative w-8 h-8 flex items-center justify-center shrink-0 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 bg-background/50 backdrop-blur-sm border border-white/5 hover:bg-white/10">
+                <MoreHorizontal className="w-4 h-4 text-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-popover/90 backdrop-blur-md border-white/10 shadow-2xl">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onClick?.(); }}>
+                View Details
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleToggleStatus}>
+                {subscription.status === 'active' ? (
+                  <><PauseCircle className="mr-2 h-4 w-4" />Pause</>
+                ) : (
+                  <><PlayCircle className="mr-2 h-4 w-4" />Resume</>
+                )}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
+                <Trash2 className="mr-2 h-4 w-4" />Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </motion.div>
