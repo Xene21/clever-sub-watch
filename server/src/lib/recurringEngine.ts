@@ -236,17 +236,24 @@ export async function runRecurringEngine(
     const rawName = tx.merchant_name || tx.name;
     const normalized = normalizeMerchant(rawName);
 
-    // Try to find an existing group with a similar name
+    // Try to find an existing group with a similar name AND similar amount
     let matched = false;
     for (const [key] of groups) {
-      if (isSimilarMerchant(key, normalized)) {
+      const [keyName, keyAmount] = key.split('|');
+      const isSimilarName = isSimilarMerchant(keyName, normalized);
+      
+      const parsedAmount = parseFloat(keyAmount);
+      // Allow up to 10% variance in amount or flat $1 difference to group them
+      const isSimilarAmount = Math.abs(parsedAmount - tx.amount) / Math.max(parsedAmount, 1) < 0.10 || Math.abs(parsedAmount - tx.amount) <= 1;
+
+      if (isSimilarName && isSimilarAmount) {
         groups.get(key)!.push(tx);
         matched = true;
         break;
       }
     }
     if (!matched) {
-      groups.set(normalized, [tx]);
+      groups.set(`${normalized}|${tx.amount}`, [tx]);
     }
   }
 
