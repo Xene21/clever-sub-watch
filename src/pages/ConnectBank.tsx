@@ -369,7 +369,7 @@ const ConnectBank = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6">
-                Subpilot analyses up to 24 months of transaction history to detect recurring
+                Subpilot analyses up to 6 months of transaction history to detect recurring
                 payments. The whole process takes under 60 seconds.
               </p>
 
