@@ -291,40 +291,41 @@ const ConnectBank = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 self-end sm:self-auto w-full sm:w-auto justify-between sm:justify-end mt-2 sm:mt-0">
-                      <div className="flex items-center gap-1 text-success mr-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end mt-4 sm:mt-0 pt-3 sm:pt-0 border-t border-white/5 sm:border-t-0">
+                      <div className="flex items-center gap-1.5 text-success">
                         <CheckCircle className="w-4 h-4" />
                         <span className="text-xs font-medium">Connected</span>
                       </div>
 
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSync(item.id)}
-                        disabled={syncingId === item.id}
-                        className="gap-1.5"
-                        id={`sync-btn-${item.id}`}
-                      >
-                        {syncingId === item.id ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <RefreshCw className="w-3.5 h-3.5" />
-                        )}
-                        Sync Now
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleSync(item.id)}
+                          disabled={syncingId === item.id}
+                          className="gap-1.5 h-8 text-xs"
+                          id={`sync-btn-${item.id}`}
+                        >
+                          {syncingId === item.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="w-3.5 h-3.5" />
+                          )}
+                          Sync Now
+                        </Button>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            id={`disconnect-btn-${item.id}`}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              id={`disconnect-btn-${item.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
                             <AlertDialogDescription>
