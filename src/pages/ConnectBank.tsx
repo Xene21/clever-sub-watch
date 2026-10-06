@@ -149,7 +149,7 @@ const ConnectBank = () => {
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      toast.success(`Synced! ${data.subscriptionsDetected} subscription(s) detected.`);
+      toast.success(`Synced! ${data.subscriptionsDetected} new subscription(s) detected.`);
       await fetchItems();
     } catch {
       toast.error('Sync failed. Please try again.');
