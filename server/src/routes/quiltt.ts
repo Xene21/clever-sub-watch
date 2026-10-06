@@ -151,11 +151,7 @@ router.post('/sync', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'No Quiltt profile found for user' });
     }
 
-    // Quiltt requires "Profile Scope" to query profile data (like connections/transactions) server-side.
-    // We achieve this using Basic Auth: profileId is the username, apiSecret is the password.
-    const apiSecret = process.env.QUILTT_API_SECRET!;
-    const encoded = Buffer.from(`${profileId}:${apiSecret}`).toString('base64');
-    const authHeader = `Basic ${encoded}`;
+    const authRes = await fetch(QUILTT_AUTH_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${process.env.QUILTT_API_SECRET}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: profileId }) }); if (!authRes.ok) throw new Error('Failed to generate Quiltt session token for sync'); const { token } = await authRes.json(); const authHeader = `Bearer ${token}`;
 
     const transactions = await fetchQuilttTransactions(req.userId!, connection.quilttId, authHeader);
     const { detected, updated } = await runRecurringEngine(req.userId!, transactions, connection.id);
@@ -396,3 +392,4 @@ async function fetchQuilttTransactions(
 }
 
 export default router;
+
