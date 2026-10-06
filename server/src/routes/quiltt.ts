@@ -32,7 +32,7 @@ router.post('/session', async (req: AuthRequest, res) => {
     // If we already have a Quiltt profile ID, scope the session to it.
     // Otherwise send an empty body — Quiltt will auto-create a new profile.
     if (user.quilttProfileId) {
-      body.profileId = user.quilttProfileId;
+      body.userId = user.quilttProfileId;
     }
 
     const authRes = await fetch(QUILTT_AUTH_URL, {
