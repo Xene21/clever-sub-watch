@@ -277,12 +277,9 @@ async function fetchQuilttTransactions(
   quilttConnectionId: string,
   authHeader: string
 ): Promise<QuilttTransaction[]> {
-  const cutoffMs = Date.now() - 730 * 24 * 60 * 60 * 1000;
+  const cutoffMs = Date.now() - 180 * 24 * 60 * 60 * 1000;
 
   // Step 1: fetch all account IDs for this specific connection.
-  // We scope to the connection so we only get transactions from the bank the user just linked.
-  // The top-level `transactions` query returns ALL transactions across the entire Quiltt profile
-  // (every bank ever connected), which causes cross-contamination and dilutes the engine.
   const accountsQuery = `
     query GetAccounts($connectionId: ID!) {
       connection(id: $connectionId) {
@@ -306,12 +303,11 @@ async function fetchQuilttTransactions(
     return [];
   }
 
-  // accounts is a plain array (Account[]), not a paginated Connection type
   const accounts: any[] = accountsJson?.data?.connection?.accounts ?? [];
   console.log(`[Quiltt] Found ${accounts.length} account(s) for connection ${quilttConnectionId}`);
 
   if (accounts.length === 0) {
-    console.warn('[Quiltt] No accounts found — bank may still be syncing. Retry in a moment.');
+    console.warn('[Quiltt] No accounts found — bank may still be syncing.');
     return [];
   }
 
@@ -320,6 +316,7 @@ async function fetchQuilttTransactions(
     query GetAccountTransactions($accountId: ID!, $after: String) {
       account(id: $accountId) {
         transactions(
+          first: 100
           after: $after
           filter: { entryType: DEBIT }
         ) {
@@ -347,8 +344,10 @@ async function fetchQuilttTransactions(
   for (const account of accounts) {
     let cursor: string | null = null;
     let hasMore = true;
+    let pageCount = 0;
 
-    while (hasMore) {
+    while (hasMore && pageCount < 10) { // Max 1000 transactions per account to prevent timeouts
+      pageCount++;
       const res = await fetch(QUILTT_API_URL, {
         method: 'POST',
         headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
@@ -363,15 +362,19 @@ async function fetchQuilttTransactions(
       }
 
       const txPage = json?.data?.account?.transactions;
-      if (!txPage) break;
+      if (!txPage || txPage.nodes.length === 0) break;
+
+      let reachedCutoff = false;
 
       for (const node of txPage.nodes) {
-        if (new Date(node.date).getTime() < cutoffMs) continue;
+        if (new Date(node.date).getTime() < cutoffMs) {
+          reachedCutoff = true;
+          continue;
+        }
         all.push({
           transaction_id: node.id,
           merchant_name:  node.merchant?.name ?? null,
           name:           node.description ?? node.merchant?.name ?? '',
-          // Quiltt debit amounts are negative — normalise to positive for the engine
           amount:         Math.abs(node.amount),
           date:           node.date,
           category:       null,
@@ -379,8 +382,12 @@ async function fetchQuilttTransactions(
         });
       }
 
+      // If we start seeing transactions older than 6 months, stop fetching more pages
+      if (reachedCutoff) break;
+
       hasMore = txPage.pageInfo.hasNextPage;
       cursor  = txPage.pageInfo.endCursor ?? null;
+      if (!cursor) break;
     }
   }
 
