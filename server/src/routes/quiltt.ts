@@ -108,7 +108,7 @@ router.post('/connection', async (req: AuthRequest, res) => {
     // Immediately sync transactions for this connection
     const transactions = await fetchQuilttTransactions(req.userId!, connectionId, authHeader);
     console.log(`[Quiltt] fetched ${transactions.length} transactions for ${institutionName}`);
-    const { detected } = await runRecurringEngine(req.userId!, transactions, connection.id);
+    const { detected } = await runRecurringEngine(req.userId!, transactions, connection.id); console.log(`[Quiltt] Engine finished for ${institutionName}: ${detected} new subscription(s) detected.`);
 
     await prisma.quilttConnection.update({
       where: { id: connection.id },
@@ -154,7 +154,7 @@ router.post('/sync', async (req: AuthRequest, res) => {
     const authRes = await fetch(QUILTT_AUTH_URL, { method: 'POST', headers: { 'Authorization': `Bearer ${process.env.QUILTT_API_SECRET}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: profileId }) }); if (!authRes.ok) throw new Error('Failed to generate Quiltt session token for sync'); const { token } = await authRes.json(); const authHeader = `Bearer ${token}`;
 
     const transactions = await fetchQuilttTransactions(req.userId!, connection.quilttId, authHeader);
-    const { detected, updated } = await runRecurringEngine(req.userId!, transactions, connection.id);
+    const { detected, updated } = await runRecurringEngine(req.userId!, transactions, connection.id); console.log(`[Quiltt] Engine finished for ${connection.institutionName || 'account'}: ${detected} new subscription(s) detected (${updated} updated).`);
 
     await prisma.quilttConnection.update({
       where: { id: connection.id },
