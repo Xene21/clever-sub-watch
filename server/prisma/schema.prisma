@@ -25,6 +25,7 @@ model User {
   subscriptions     Subscription[]
   chatSessions      ChatSession[]
   quilttConnections QuilttConnection[]
+  monoConnections   MonoConnection[]
 }
 
 model ChatSession {
@@ -67,10 +68,14 @@ model Subscription {
   color            String?
 
   // Quiltt linkage
-  transactionId    String?   // ID of the last matched Quiltt transaction
-  detectionSource  String    @default("manual") // "quiltt" | "manual"
+  transactionId    String?   // ID of the last matched Quiltt/Mono transaction
+  detectionSource  String    @default("manual") // "quiltt" | "mono" | "manual" | "email"
   connectionId     String?
   connection       QuilttConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  // Mono linkage
+  monoConnectionId String?
+  monoConnection   MonoConnection? @relation(fields: [monoConnectionId], references: [id], onDelete: SetNull)
 
   userId           String
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -82,6 +87,21 @@ model Subscription {
 model QuilttConnection {
   id              String    @id @default(uuid())
   quilttId        String    @unique  // Quiltt's internal connection ID
+  institutionName String?
+  lastSyncedAt    DateTime?
+
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  subscriptions   Subscription[]
+}
+
+model MonoConnection {
+  id              String    @id @default(uuid())
+  monoId          String    @unique  // Mono's internal account ID
   institutionName String?
   lastSyncedAt    DateTime?
 

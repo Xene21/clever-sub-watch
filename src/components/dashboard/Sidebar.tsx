@@ -7,20 +7,28 @@ import {
   LayoutDashboard, 
   CreditCard, 
   BrainCircuit, 
-  Building2, 
+  Link2, 
   Settings, 
   LogOut,
-  ChevronLeft
+  ChevronLeft,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: CreditCard, label: 'Subscriptions', href: '/dashboard/subscriptions' },
   { icon: BrainCircuit, label: 'AI Insights', href: '/dashboard/insights' },
-  { icon: Building2, label: 'Connect Bank', href: '/dashboard/connect' },
-  { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
+  { icon: Link2, label: 'Connections', href: '/dashboard/connect' },
 ];
 
 interface DashboardSidebarProps {
@@ -35,6 +43,7 @@ const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSide
   const location = useLocation();
   const navigate = useNavigate();
   const [userName, setUserName] = useState('User');
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     const cachedName = localStorage.getItem('userName');
@@ -47,6 +56,9 @@ const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSide
         setUserName(res.user.name);
         localStorage.setItem('userName', res.user.name);
       }
+      if (res?.user?.email) {
+        setUserEmail(res.user.email);
+      }
     }).catch(console.error);
   }, []);
 
@@ -54,11 +66,14 @@ const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSide
     try {
       await api.post('/auth/logout', {});
       localStorage.removeItem('userName');
-      toast.success('Logged out successfully');
+      toast.success('Signed out successfully', {
+        className: 'justify-end'
+      });
+      navigate('/');
     } catch (error) {
       console.error('Logout failed:', error);
-    } finally {
-      window.location.href = '/';
+      // Fallback redirect if API fails
+      navigate('/');
     }
   };
 
@@ -156,48 +171,63 @@ const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSide
 
       {/* User section */}
       <div className="p-4 border-t border-white/10 bg-white/[0.01]">
-        <div className="flex items-center gap-3 mb-3 px-2 overflow-hidden">
-          <div className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
-            <span className="text-xs font-medium text-white">{userName.charAt(0).toUpperCase()}</span>
-          </div>
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                className="flex flex-col whitespace-nowrap overflow-hidden"
-              >
-                <span className="text-sm font-medium text-white tracking-tight">{userName}</span>
-                <span className="text-xs text-muted-foreground">Pro Plan</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleLogout}
-          className={cn(
-            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-muted-foreground hover:bg-white/5 hover:text-white transition-colors w-full overflow-hidden",
-            collapsed ? "justify-center" : "justify-start"
-          )}
-        >
-          <LogOut className="w-4 h-4 shrink-0" />
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.span
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                className="text-sm font-medium whitespace-nowrap"
-              >
-                Log out
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </motion.button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={cn("flex items-center justify-between px-2 py-2 rounded-lg hover:bg-white/5 transition-colors w-full text-left overflow-hidden outline-none ring-0", collapsed ? "justify-center" : "")}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-medium text-white">{userName.charAt(0).toUpperCase()}</span>
+                </div>
+                <AnimatePresence>
+                  {!collapsed && (
+                    <motion.div
+                      initial={{ opacity: 0, width: 0 }}
+                      animate={{ opacity: 1, width: 'auto' }}
+                      exit={{ opacity: 0, width: 0 }}
+                      className="flex flex-col whitespace-nowrap overflow-hidden"
+                    >
+                      <span className="text-sm font-medium text-white tracking-tight">{userName}</span>
+                      <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">Pro Plan</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+              {!collapsed && (
+                <ChevronDown className="w-4 h-4 text-muted-foreground opacity-50 shrink-0" />
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="end" 
+            side={collapsed ? "right" : "top"} 
+            sideOffset={12}
+            className="w-[240px] rounded-xl border-white/10 bg-[#0a1120] shadow-2xl p-1"
+          >
+            <div className="flex items-center gap-3 px-3 py-3 mb-1 border-b border-white/5">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/30 to-accent/30 border border-white/20 flex items-center justify-center shrink-0">
+                <span className="text-sm font-medium text-white">{userName.charAt(0).toUpperCase()}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white tracking-tight">{userName}</span>
+                {userEmail && (
+                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">{userEmail}</span>
+                )}
+              </div>
+            </div>
+            
+            <DropdownMenuItem onClick={() => navigate('/dashboard/settings')} className="gap-2 cursor-pointer rounded-lg py-2.5 px-3 hover:bg-white/5 focus:bg-white/5 focus:text-white hover:text-white">
+              <Settings className="w-4 h-4 text-muted-foreground group-focus:text-white" />
+              <span className="font-medium text-sm">Account Settings</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator className="bg-white/5 my-1" />
+            
+            <DropdownMenuItem onClick={handleLogout} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 gap-2 cursor-pointer rounded-lg py-2.5 px-3">
+              <LogOut className="w-4 h-4" />
+              <span className="font-medium text-sm">Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </motion.aside>
   );

@@ -10,6 +10,7 @@ import subscriptionsRoutes from './routes/subscriptions';
 import aiRoutes from './routes/ai';
 import quilttRoutes from './routes/quiltt';
 import googleRoutes from './routes/google';
+import monoRoutes from './routes/mono';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -53,6 +54,7 @@ app.use('/api/auth/google', googleRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/quiltt', quilttRoutes);
+app.use('/api/mono', monoRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

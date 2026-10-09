@@ -179,24 +179,41 @@ router.post('/sync', async (req: AuthRequest, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/items', async (req: AuthRequest, res) => {
   try {
-    const items = await prisma.quilttConnection.findMany({
-      where: { userId: req.userId },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        institutionName: true,
-        lastSyncedAt: true,
-        createdAt: true,
-        _count: { select: { subscriptions: true } },
-      },
-    });
+    const [quilttItems, monoItems] = await Promise.all([
+      prisma.quilttConnection.findMany({
+        where: { userId: req.userId },
+        select: { id: true, institutionName: true, lastSyncedAt: true, createdAt: true, _count: { select: { subscriptions: true } } },
+      }),
+      prisma.monoConnection.findMany({
+        where: { userId: req.userId },
+        select: { id: true, institutionName: true, lastSyncedAt: true, createdAt: true, _count: { select: { subscriptions: true } } },
+      })
+    ]);
 
-    res.json(items.map(item => {
-      const { _count, ...rest } = item;
-      return { ...rest, subscriptionsDetected: _count.subscriptions };
+    const mappedQuiltt = quilttItems.map(item => ({
+      id: item.id,
+      institutionName: item.institutionName,
+      lastSyncedAt: item.lastSyncedAt,
+      createdAt: item.createdAt,
+      subscriptionsDetected: item._count.subscriptions,
+      type: 'quiltt'
     }));
+
+    const mappedMono = monoItems.map(item => ({
+      id: item.id,
+      institutionName: item.institutionName,
+      lastSyncedAt: item.lastSyncedAt,
+      createdAt: item.createdAt,
+      subscriptionsDetected: item._count.subscriptions,
+      type: 'mono'
+    }));
+
+    const combined = [...mappedQuiltt, ...mappedMono].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    res.json(combined);
   } catch (error) {
-    console.error('Quiltt get-items error:', error);
+    console.error('get-items error:', error);
     res.status(500).json({ error: 'Failed to fetch bank accounts' });
   }
 });
