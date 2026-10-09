@@ -57,12 +57,13 @@ export async function scanUserEmails(userId: string) {
 
   // Search for recent receipts/subscriptions
   // newer_than:3m restricts to the last 3 months to avoid overloading
-  const query = 'newer_than:3m (subject:receipt OR subject:subscription OR subject:renewal OR from:billing)';
+  // Expanded to catch "invoice", "payment", and "order" variants.
+  const query = 'newer_than:3m (subject:receipt OR subject:invoice OR subject:payment OR subject:order OR subject:subscription OR subject:renewal OR from:billing OR from:receipts OR from:invoices)';
   
   const response = await gmail.users.messages.list({
     userId: 'me',
     q: query,
-    maxResults: 20 // Let's test with the 20 most recent
+    maxResults: 50 // Increased to 50 to accommodate the wider search net
   });
 
   const messages = response.data.messages || [];
