@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { groupByCategory, Subscription } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { BarChart3 } from 'lucide-react';
 
 interface SpendingChartProps {
   subscriptions: Subscription[];
@@ -76,46 +77,59 @@ const SpendingChart = ({ subscriptions }: SpendingChartProps) => {
         </div>
       </div>
       
-      <div className="h-[280px] w-full mt-4 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'thin' }}>
-        <div style={{ minWidth: `max(100%, ${data.length * 100}px)`, height: '100%' }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(43 57% 65%)" stopOpacity={0.8} />
-                  <stop offset="100%" stopColor="hsl(43 57% 65%)" stopOpacity={0.2} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
+      {data.length === 0 ? (
+        <div className="h-[280px] w-full mt-4 flex flex-col items-center justify-center text-center">
+          <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center mb-4">
+            <BarChart3 className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <p className="text-sm font-medium text-foreground">No spending data</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-[200px]">
+            Your subscriptions will appear here categorized by type.
+          </p>
+        </div>
+      ) : (
+        <div className="h-[280px] w-full mt-4 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'thin' }}>
+          <div style={{ minWidth: `max(100%, ${data.length * 100}px)`, height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="goldGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(43 57% 65%)" stopOpacity={0.8} />
+                    <stop offset="100%" stopColor="hsl(43 57% 65%)" stopOpacity={0.2} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="name" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)' }}
+                  dy={10}
+                  interval={0}
+                  tickFormatter={(val) => val.length > 8 ? val.substring(0, 8) + '..' : val}
+                />
+              <YAxis 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)' }}
-                dy={10}
-                interval={0}
+                tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)', fontFamily: 'monospace' }}
+                tickFormatter={(value) => `$${value}`}
               />
-            <YAxis 
-              axisLine={false} 
-              tickLine={false} 
-              tick={{ fontSize: 10, fill: 'hsl(215 20% 55%)', fontFamily: 'monospace' }}
-              tickFormatter={(value) => `$${value}`}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-            <Bar 
-              dataKey="value" 
-              fill="url(#goldGradient)" 
-              radius={[4, 4, 0, 0]}
-              barSize={32}
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} />
-              ))}
-            </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Bar 
+                dataKey="value" 
+                fill="url(#goldGradient)" 
+                radius={[4, 4, 0, 0]}
+                barSize={32}
+              >
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} />
+                ))}
+              </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };

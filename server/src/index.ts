@@ -9,6 +9,7 @@ import authRoutes from './routes/auth';
 import subscriptionsRoutes from './routes/subscriptions';
 import aiRoutes from './routes/ai';
 import quilttRoutes from './routes/quiltt';
+import googleRoutes from './routes/google';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -48,6 +49,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/auth/google', googleRoutes);
 app.use('/api/subscriptions', subscriptionsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/quiltt', quilttRoutes);

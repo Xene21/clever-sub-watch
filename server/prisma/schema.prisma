@@ -14,6 +14,12 @@ model User {
   name              String
   passwordHash      String
   quilttProfileId   String?            // Quiltt profile ID for this user
+  
+  // Google Gmail Integration
+  googleAccessToken String?
+  googleRefreshToken String?
+  googleEmail       String?
+
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   subscriptions     Subscription[]

@@ -37,8 +37,17 @@ const DashboardSidebar = ({ mobileOpen, collapsed, setCollapsed }: DashboardSide
   const [userName, setUserName] = useState('User');
 
   useEffect(() => {
-    const name = localStorage.getItem('userName');
-    if (name) setUserName(name);
+    const cachedName = localStorage.getItem('userName');
+    if (cachedName) setUserName(cachedName);
+    
+    // Always fetch fresh user data to override stale local storage 
+    // (especially important for OAuth logins where local storage wasn't set)
+    api.get('/auth/me').then(res => {
+      if (res?.user?.name) {
+        setUserName(res.user.name);
+        localStorage.setItem('userName', res.user.name);
+      }
+    }).catch(console.error);
   }, []);
 
   const handleLogout = async () => {
