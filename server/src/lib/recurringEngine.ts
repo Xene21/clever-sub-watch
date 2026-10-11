@@ -112,6 +112,9 @@ const MERCHANT_CATEGORIES: Record<string, string> = {
   duolingo: 'Education', coursera: 'Education', skillshare: 'Education',
   udemy: 'Education', linkedin: 'Education', 'linkedin premium': 'Education',
   masterclass: 'Education', 'khan academy': 'Education',
+  // African & Regional Services
+  showmax: 'Streaming', dstv: 'Streaming', gotv: 'Streaming', multichoice: 'Streaming',
+  starlink: 'Productivity', mtn: 'Telecom', airtel: 'Telecom', glo: 'Telecom',
   // Transport
   uber: 'Transport', lyft: 'Transport', 'national rail': 'Transport', tfl: 'Transport',
   // Telecom
@@ -133,6 +136,14 @@ const MERCHANT_CATEGORIES: Record<string, string> = {
 };
 
 /**
+ * Strips common payment gateway and transaction prefixes (Paystack, Flutterwave, POS, TRF, etc.)
+ */
+function stripGatewayPrefix(name: string): string {
+  // Strip payment gateway prefixes only — not brand names like Multichoice
+  return name.replace(/^(paystack|flw|flutterwave|pos|web|pos\/web|nip|trf)\s*[*:\/ -]\s*/i, '').trim();
+}
+
+/**
  * Resolve a category for a merchant name.
  * 1. Exact match against the merchant dictionary.
  * 2. Partial match (dictionary key contained in merchant name, or vice versa).
@@ -140,7 +151,8 @@ const MERCHANT_CATEGORIES: Record<string, string> = {
  * 4. Default to 'Other'.
  */
 function resolveMerchantCategory(merchantName: string, rawCategory: string | null): string {
-  const normalized = merchantName.toLowerCase()
+  const stripped = stripGatewayPrefix(merchantName);
+  const normalized = stripped.toLowerCase()
     .replace(/\*.*$/, '')
     .replace(/\.(com|net|org|io)$/, '')
     .replace(/[^a-z0-9 '&-]/g, '')
@@ -167,7 +179,8 @@ function resolveMerchantCategory(merchantName: string, rawCategory: string | nul
 
 
 function normalizeMerchant(name: string): string {
-  return name
+  const stripped = stripGatewayPrefix(name);
+  return stripped
     .toLowerCase()
     .replace(/\*.*$/, '')          // Remove everything after * (e.g. "NETFLIX*1")
     .replace(/\.(com|net|org|io)$/, '') // Strip TLDs
@@ -221,8 +234,11 @@ function computeNextBillingDate(lastDate: Date, cycle: string): Date {
 export async function runRecurringEngine(
   userId: string,
   transactions: QuilttTransaction[],
-  connectionId: string
+  connectionId?: string,
+  monoConnectionId?: string
 ): Promise<{ detected: number; updated: number }> {
+
+  const detectionSource = monoConnectionId ? 'mono' : 'quiltt';
 
   // 1. Filter out pending and refund (negative amount) transactions
   const debits = transactions.filter(
@@ -263,29 +279,24 @@ export async function runRecurringEngine(
   for (const [, txGroup] of groups) {
     // Need at least 2 transactions to detect a recurrence pattern.
     // Exception: if the merchant is in our known-subscription dictionary and we have
-    // exactly 1 transaction, we still create it as a monthly subscription — this covers
-    // users with limited history or a freshly linked bank account.
-    if (txGroup.length < 2) {
-      const singleTx = txGroup[0];
-      const rawName = singleTx.merchant_name || singleTx.name;
-      const rawCategory = singleTx.category?.[0] ?? null;
-      const knownCategory = resolveMerchantCategory(rawName, rawCategory);
+    const singleTx = txGroup[0];
+    const rawName = singleTx.merchant_name || singleTx.name;
+    const knownCategory = resolveMerchantCategory(rawName, null);
+    const isKnownSubscription = knownCategory !== 'Other' && knownCategory !== null;
 
-      // Only auto-detect if it maps to a real category (i.e. it's in the merchant dict)
-      if (knownCategory === 'Other') continue;
-
+    if (txGroup.length === 1 && isKnownSubscription) {
       const lastBillingDate = new Date(singleTx.date);
-      const billingCycleDay = lastBillingDate.getDate();
       const nextBillingDate = computeNextBillingDate(lastBillingDate, 'monthly');
+      const billingCycleDay = lastBillingDate.getDate();
 
       const existing = await prisma.subscription.findFirst({
-        where: { userId, name: { equals: rawName, mode: 'insensitive' }, detectionSource: 'quiltt' },
+        where: { userId, name: { equals: rawName, mode: 'insensitive' } },
       });
 
       if (existing) {
         await prisma.subscription.update({
           where: { id: existing.id },
-          data: { price: singleTx.amount, billingCycleDay, lastBillingDate, nextBillingDate, transactionId: singleTx.transaction_id },
+          data: { price: singleTx.amount, lastBillingDate, nextBillingDate, transactionId: singleTx.transaction_id },
         });
         updated++;
       } else {
@@ -303,14 +314,17 @@ export async function runRecurringEngine(
             nextBillingDate,
             category: knownCategory,
             status: 'active',
-            detectionSource: 'quiltt',
+            detectionSource,
             transactionId: singleTx.transaction_id,
-            connectionId,
+            connectionId: connectionId ?? undefined,
+            monoConnectionId: monoConnectionId ?? undefined,
           },
         });
       }
       continue;
     }
+
+    if (txGroup.length < 2) continue;
 
     // Sort chronologically
     const sorted = txGroup.sort(
@@ -352,7 +366,6 @@ export async function runRecurringEngine(
       where: {
         userId,
         name: { equals: merchantName, mode: 'insensitive' },
-        detectionSource: 'quiltt',
       },
     });
 
@@ -386,9 +399,10 @@ export async function runRecurringEngine(
           nextBillingDate,
           category,
           status: 'active',
-          detectionSource: 'quiltt',
+          detectionSource,
           transactionId: latest.transaction_id,
-          connectionId,
+          connectionId: connectionId ?? undefined,
+          monoConnectionId: monoConnectionId ?? undefined,
         },
       });
     }

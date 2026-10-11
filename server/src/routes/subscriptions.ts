@@ -12,6 +12,10 @@ router.get('/', async (req: AuthRequest, res) => {
   try {
     const subscriptions = await prisma.subscription.findMany({
       where: { userId: req.userId },
+      include: {
+        connection: { select: { institutionName: true } },
+        monoConnection: { select: { institutionName: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -33,6 +37,7 @@ router.get('/', async (req: AuthRequest, res) => {
       category: sub.category || 'Other',
       color: sub.color || '#000000',
       detectionSource: sub.detectionSource,
+      bankName: sub.connection?.institutionName || sub.monoConnection?.institutionName || (sub.detectionSource === 'email' ? 'Gmail' : sub.detectionSource === 'manual' ? 'Manual Entry' : 'Connected Bank'),
       transactionId: sub.transactionId ?? null,
       history: [],
     }));
@@ -48,10 +53,39 @@ router.get('/', async (req: AuthRequest, res) => {
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const sub = await prisma.subscription.findUnique({ where: { id } });
+    const sub = await prisma.subscription.findUnique({
+      where: { id },
+      include: {
+        connection: { select: { institutionName: true } },
+        monoConnection: { select: { institutionName: true } },
+      },
+    });
 
     if (!sub) return res.status(404).json({ error: 'Subscription not found' });
     if (sub.userId !== req.userId) return res.status(403).json({ error: 'Forbidden' });
+
+    let bankName = sub.connection?.institutionName || sub.monoConnection?.institutionName;
+    if (!bankName) {
+      if (sub.detectionSource === 'quiltt') {
+        const userConn = await prisma.quilttConnection.findFirst({
+          where: { userId: sub.userId },
+          orderBy: { createdAt: 'desc' },
+          select: { institutionName: true },
+        });
+        bankName = userConn?.institutionName || 'Connected Bank';
+      } else if (sub.detectionSource === 'mono') {
+        const userConn = await prisma.monoConnection.findFirst({
+          where: { userId: sub.userId },
+          orderBy: { createdAt: 'desc' },
+          select: { institutionName: true },
+        });
+        bankName = userConn?.institutionName || 'African Bank';
+      } else if (sub.detectionSource === 'email') {
+        bankName = 'Gmail';
+      } else {
+        bankName = 'Manual Entry';
+      }
+    }
 
     res.json({
       id: sub.id,
@@ -70,6 +104,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
         ? sub.nextBillingDate.toISOString().split('T')[0]
         : sub.startDate.toISOString().split('T')[0],
       detectionSource: sub.detectionSource,
+      bankName,
       history: [], // history is computed client-side from billing cycle + dates
     });
   } catch (error) {

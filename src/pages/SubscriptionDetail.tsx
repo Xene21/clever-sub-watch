@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Calendar, RefreshCw, XCircle, Loader2, AlertCircle, Tag, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, RefreshCw, XCircle, Loader2, AlertCircle, Tag, Clock, Landmark } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -30,6 +30,7 @@ interface SubscriptionDetail {
   lastBillingDate: string | null;
   nextBillingDate: string;
   detectionSource: string;
+  bankName?: string | null;
   history: HistoryEntry[];
 }
 
@@ -199,7 +200,7 @@ const SubscriptionDetail = () => {
                 <Badge variant="outline" className="capitalize text-muted-foreground">
                   {sub.frequency}
                 </Badge>
-                {sub.detectionSource === 'quiltt' && (
+                {sub.detectionSource !== 'manual' && (
                   <Badge variant="outline" className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-xs">
                     Auto-detected
                   </Badge>
@@ -220,7 +221,7 @@ const SubscriptionDetail = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-4 mb-6"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
         >
           <div className="glass-card p-5">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
@@ -252,6 +253,25 @@ const SubscriptionDetail = () => {
             <p className="font-semibold">{sub.category}</p>
             <p className="text-sm text-muted-foreground mt-0.5">
               Since {formatDate(sub.startDate)}
+            </p>
+          </div>
+
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+              <Landmark className="w-4 h-4" />
+              Bank Account
+            </div>
+            <p className="font-semibold truncate" title={sub.bankName || 'Connected Bank'}>
+              {sub.bankName || 'Connected Bank'}
+            </p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {sub.detectionSource === 'mono'
+                ? 'Mono Account'
+                : sub.detectionSource === 'quiltt'
+                ? 'Open Banking'
+                : sub.detectionSource === 'email'
+                ? 'Email Sync'
+                : 'Manual Entry'}
             </p>
           </div>
         </motion.div>

@@ -22,6 +22,7 @@ interface ConnectedItem {
   institutionName: string | null;
   lastSyncedAt: string | null;
   subscriptionsDetected: number;
+  type: 'quiltt' | 'mono';
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
@@ -161,12 +162,50 @@ const ConnectBank = () => {
     try {
       const res = await fetch('/api/mono/exchange', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       });
       if (!res.ok) throw new Error();
-      toast.success('Bank connected via Mono! Scanning transactions...', { duration: 5000 });
-      fetchItems();
+      const data = await res.json();
+      const bankName = data.institutionName ?? 'African Bank';
+
+      if (data.subscriptionsDetected > 0) {
+        toast.success(`${bankName} connected! ${data.subscriptionsDetected} subscription(s) detected.`);
+        await fetchItems();
+      } else {
+        // Initial 0 detected: start background polling (same as Quiltt)
+        const toastId = toast.loading(`${bankName} connected. Reading historical transactions...`);
+        await fetchItems();
+
+        let attempts = 0;
+        const maxAttempts = 6; // Poll every 15s for up to 1.5 mins
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const syncRes = await fetch('/api/mono/sync', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ itemId: data.connectionId }),
+            });
+            const syncData = await syncRes.json();
+
+            if (syncData.detected > 0) {
+              toast.success(`Analysis complete! Found ${syncData.detected} subscription(s) in ${bankName}.`, { id: toastId });
+              clearInterval(pollInterval);
+              fetchItems();
+            } else if (attempts >= maxAttempts) {
+              toast.info(`Finished analyzing ${bankName}. No subscriptions detected yet.`, { id: toastId });
+              clearInterval(pollInterval);
+              fetchItems();
+            }
+          } catch (e) {
+            // Silently fail the poll attempt and try again next tick
+          }
+        }, 15000);
+      }
     } catch {
       toast.error('Failed to link Mono account.');
     } finally {
@@ -185,18 +224,19 @@ const ConnectBank = () => {
   }, [handleMonoSuccess]);
 
   // Sync a specific bank account
-  const handleSync = async (itemId: string) => {
-    setSyncingId(itemId);
+  const handleSync = async (item: ConnectedItem) => {
+    setSyncingId(item.id);
     try {
-      const res = await fetch('/api/quiltt/sync', {
+      const endpoint = item.type === 'mono' ? '/api/mono/sync' : '/api/quiltt/sync';
+      const res = await fetch(endpoint, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId }),
+        body: JSON.stringify({ itemId: item.id }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
-      toast.success(`Synced! ${data.subscriptionsDetected} new subscription(s) detected.`);
+      toast.success(`Synced! ${data.subscriptionsDetected ?? data.detected ?? 0} new subscription(s) detected.`);
       await fetchItems();
     } catch {
       toast.error('Sync failed. Please try again.');
@@ -206,15 +246,18 @@ const ConnectBank = () => {
   };
 
   // Disconnect a bank account
-  const handleDisconnect = async (itemId: string) => {
+  const handleDisconnect = async (item: ConnectedItem) => {
     try {
-      const res = await fetch(`/api/quiltt/items/${itemId}`, {
+      const endpoint = item.type === 'mono'
+        ? `/api/mono/items/${item.id}`
+        : `/api/quiltt/items/${item.id}`;
+      const res = await fetch(endpoint, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) throw new Error();
       toast.success('Bank account disconnected.');
-      setConnectedItems(prev => prev.filter(i => i.id !== itemId));
+      setConnectedItems(prev => prev.filter(i => i.id !== item.id));
     } catch {
       toast.error('Failed to disconnect. Please try again.');
     }
@@ -348,7 +391,7 @@ const ConnectBank = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleSync(item.id)}
+                          onClick={() => handleSync(item)}
                           disabled={syncingId === item.id}
                           className="gap-1.5 h-8 text-xs"
                           id={`sync-btn-${item.id}`}
@@ -385,7 +428,7 @@ const ConnectBank = () => {
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
-                              onClick={() => handleDisconnect(item.id)}
+                              onClick={() => handleDisconnect(item)}
                               className="bg-destructive hover:bg-destructive/90"
                             >
                               Disconnect

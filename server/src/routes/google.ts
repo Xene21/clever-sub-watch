@@ -64,7 +64,7 @@ router.get('/callback', async (req, res) => {
       // --- LOGIN / SIGNUP FLOW ---
       const email = userInfo.data.email!;
       let user = await prisma.user.findUnique({ where: { email } });
-      
+
       if (!user) {
         // Create user
         user = await prisma.user.create({
@@ -72,23 +72,23 @@ router.get('/callback', async (req, res) => {
             email,
             name: userInfo.data.name || 'Google User',
             passwordHash: 'oauth_user', // placeholder for oauth users
-            googleAccessToken: tokens.access_token,
-            googleRefreshToken: tokens.refresh_token,
+            googleAccessToken: tokens.access_token ?? null,
+            googleRefreshToken: tokens.refresh_token ?? null,
             googleEmail: email
           }
         });
       } else {
-        // Update tokens for existing user
+        // Update tokens for existing user — never overwrite with null
         user = await prisma.user.update({
           where: { id: user.id },
           data: {
-            googleAccessToken: tokens.access_token,
-            googleRefreshToken: tokens.refresh_token || user.googleRefreshToken, // preserve refresh token if not returned
+            ...(tokens.access_token && { googleAccessToken: tokens.access_token }),
+            ...(tokens.refresh_token && { googleRefreshToken: tokens.refresh_token }),
             googleEmail: email
           }
         });
       }
-      
+
       // Log them in
       const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
       res.cookie('token', token, {
@@ -97,7 +97,7 @@ router.get('/callback', async (req, res) => {
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
       });
-      
+
       return res.redirect(`${frontendUrl}/dashboard`);
     } else {
       // --- CONNECT GMAIL TO EXISTING ACCOUNT FLOW ---
@@ -105,8 +105,8 @@ router.get('/callback', async (req, res) => {
       await prisma.user.update({
         where: { id: userId },
         data: {
-          googleAccessToken: tokens.access_token,
-          googleRefreshToken: tokens.refresh_token,
+          ...(tokens.access_token && { googleAccessToken: tokens.access_token }),
+          ...(tokens.refresh_token && { googleRefreshToken: tokens.refresh_token }),
           googleEmail: userInfo.data.email
         }
       });
