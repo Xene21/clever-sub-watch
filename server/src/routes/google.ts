@@ -157,7 +157,10 @@ router.post('/sync', requireAuth, async (req: any, res) => {
     res.json({ success: true, detected: detectedCount });
   } catch (error: any) {
     console.error('Gmail sync error:', error);
-    res.status(500).json({ error: error.message || 'Failed to sync emails' });
+    res.status(500).json({ 
+      error: error.message || 'Failed to sync emails',
+      code: error.code || 'UNKNOWN_ERROR'
+    });
   }
 });
 

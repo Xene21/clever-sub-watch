@@ -565,8 +565,8 @@ const ConnectBank = () => {
                           } else {
                             throw new Error(data.error);
                           }
-                        } catch (e) {
-                          toast.error('Scan failed. Try again later.', { id: toastId });
+                        } catch (e: any) {
+                          toast.error(e?.message || 'Scan failed. Try again later.', { id: toastId });
                         } finally {
                           setIsSyncingGmail(false);
                         }
