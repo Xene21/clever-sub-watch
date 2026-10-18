@@ -199,6 +199,19 @@ router.put('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// DELETE /api/subscriptions — deletes ALL subscriptions for the logged-in user
+router.delete('/', async (req: AuthRequest, res) => {
+  try {
+    const { count } = await prisma.subscription.deleteMany({
+      where: { userId: req.userId },
+    });
+    res.json({ message: `Deleted ${count} subscription(s)`, count });
+  } catch (error) {
+    console.error('Error deleting all subscriptions:', error);
+    res.status(500).json({ error: 'Failed to delete subscriptions' });
+  }
+});
+
 // DELETE /api/subscriptions/:id — only allows deletion if the subscription belongs to the logged-in user
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {

@@ -32,6 +32,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { Subscription } from '@/lib/mock-data';
@@ -125,6 +136,21 @@ const SubscriptionsPage = () => {
     }
   };
 
+  const handleDeleteAll = async () => {
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.success(`Deleted ${data.count} subscription(s)`);
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    } catch (error) {
+      toast.error('Failed to delete all subscriptions');
+    }
+  };
+
   const handleToggleStatus = async (sub: Subscription) => {
     try {
       const newStatus = sub.status === 'active' ? 'paused' : 'active';
@@ -155,12 +181,41 @@ const SubscriptionsPage = () => {
             <h1 className="font-display text-3xl font-bold mb-2">Subscriptions</h1>
             <p className="text-muted-foreground">Manage all your active and paused subscriptions.</p>
           </div>
-          <AddSubscriptionForm>
-            <Button className="w-full sm:w-auto">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Subscription
-            </Button>
-          </AddSubscriptionForm>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {subscriptions.length > 0 && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                    <Trash2 className="w-4 h-4" />
+                    Delete All
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete all subscriptions?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete all <strong>{subscriptions.length}</strong> subscription(s) from your account. This cannot be undone — you'll need to reconnect your bank or re-add them manually.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAll}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      Delete All
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            <AddSubscriptionForm>
+              <Button className="w-full sm:w-auto">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Subscription
+              </Button>
+            </AddSubscriptionForm>
+          </div>
         </motion.div>
 
         {isLoading ? (
