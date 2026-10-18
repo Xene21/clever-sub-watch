@@ -277,53 +277,9 @@ export async function runRecurringEngine(
   let updated = 0;
 
   for (const [, txGroup] of groups) {
-    // Need at least 2 transactions to detect a recurrence pattern.
-    // Exception: if the merchant is in our known-subscription dictionary and we have
-    const singleTx = txGroup[0];
-    const rawName = singleTx.merchant_name || singleTx.name;
-    const knownCategory = resolveMerchantCategory(rawName, null);
-    const isKnownSubscription = knownCategory !== 'Other' && knownCategory !== null;
-
-    if (txGroup.length === 1 && isKnownSubscription) {
-      const lastBillingDate = new Date(singleTx.date);
-      const nextBillingDate = computeNextBillingDate(lastBillingDate, 'monthly');
-      const billingCycleDay = lastBillingDate.getDate();
-
-      const existing = await prisma.subscription.findFirst({
-        where: { userId, name: { equals: rawName, mode: 'insensitive' } },
-      });
-
-      if (existing) {
-        await prisma.subscription.update({
-          where: { id: existing.id },
-          data: { price: singleTx.amount, lastBillingDate, nextBillingDate, transactionId: singleTx.transaction_id },
-        });
-        updated++;
-      } else {
-        detected++;
-        await prisma.subscription.create({
-          data: {
-            userId,
-            name: rawName,
-            price: singleTx.amount,
-            currency: 'USD',
-            billingCycle: 'monthly',
-            billingCycleDay,
-            startDate: lastBillingDate,
-            lastBillingDate,
-            nextBillingDate,
-            category: knownCategory,
-            status: 'active',
-            detectionSource,
-            transactionId: singleTx.transaction_id,
-            connectionId: connectionId ?? undefined,
-            monoConnectionId: monoConnectionId ?? undefined,
-          },
-        });
-      }
-      continue;
-    }
-
+    // Require at least 2 transactions to establish a recurrence pattern.
+    // A single transaction — even from a known merchant like Apple or Google —
+    // could be a one-time purchase and should NOT be flagged as a subscription.
     if (txGroup.length < 2) continue;
 
     // Sort chronologically

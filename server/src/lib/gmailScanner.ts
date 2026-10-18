@@ -85,6 +85,90 @@ function describeGoogleError(err: any): SyncError {
 
 const VALID_CYCLES = new Set(['weekly', 'monthly', 'quarterly', 'yearly']);
 
+// Extract the email Date header (falls back to internalDate epoch ms)
+function getEmailDate(message: any): string | null {
+  const headers: { name: string; value: string }[] = message.payload?.headers ?? [];
+  const dateHeader = headers.find((h: any) => h.name.toLowerCase() === 'date');
+  if (dateHeader?.value) {
+    const parsed = new Date(dateHeader.value);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+  }
+  if (message.internalDate) {
+    const parsed = new Date(Number(message.internalDate));
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split('T')[0];
+  }
+  return null;
+}
+
+function computeNextDate(from: Date, cycle: string): Date {
+  const next = new Date(from);
+  switch (cycle) {
+    case 'weekly':    next.setDate(next.getDate() + 7); break;
+    case 'monthly':   next.setMonth(next.getMonth() + 1); break;
+    case 'quarterly': next.setMonth(next.getMonth() + 3); break;
+    case 'yearly':    next.setFullYear(next.getFullYear() + 1); break;
+  }
+  return next;
+}
+
+// Per-email AI classification — returns structured subscription data or null
+async function classifyEmail(
+  body: string,
+  emailDate: string | null
+): Promise<{
+  name: string;
+  price: number;
+  billingCycle: string;
+  category: string;
+  startDate: string;
+} | null> {
+  const systemPrompt = `You are a subscription receipt detector. Given the text of a single email, decide if it is a receipt or confirmation for a RECURRING subscription charge.
+
+Rules — the email MUST qualify ALL of the following to count:
+1. It is a charge/payment confirmation (not a marketing email, promotional offer, sign-up welcome, or shipping notification).
+2. It explicitly relates to a RECURRING charge — look for words like "subscription", "renewal", "auto-renewed", "next billing date", "recurring charge", "monthly plan", "annual plan", "billing cycle".
+3. It includes a specific monetary amount charged (not just a price quote or future estimate).
+
+One-time purchases, gift card purchases, order confirmations for physical goods, trial start emails (where no money was charged yet), and password reset/account emails do NOT qualify.
+
+If the email qualifies, respond with ONLY this JSON object:
+{"isSubscription": true, "name": "<merchant/service name>", "price": <amount charged in USD, as a number>, "billingCycle": "<weekly|monthly|quarterly|yearly>", "category": "<Streaming|Music|Gaming|Productivity|AI Tools|Cloud Storage|Security|Finance|Fitness|Food & Drink|News & Reading|Education|Telecom|Shopping|Other>"}
+
+If it does not qualify, respond with ONLY:
+{"isSubscription": false}`;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: OPENAI_MODEL,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: body.substring(0, 2500) },
+      ],
+    });
+    const text = completion.choices[0]?.message?.content ?? '{}';
+    const parsed = JSON.parse(text);
+
+    if (!parsed.isSubscription) return null;
+
+    const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
+    const price = Number(parsed.price);
+    const cycle = String(parsed.billingCycle ?? '').toLowerCase();
+
+    if (!name || !Number.isFinite(price) || price <= 0 || !VALID_CYCLES.has(cycle)) return null;
+
+    return {
+      name,
+      price,
+      billingCycle: cycle,
+      category: typeof parsed.category === 'string' ? parsed.category : 'Other',
+      startDate: emailDate ?? new Date().toISOString().split('T')[0],
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function scanUserEmails(userId: string): Promise<number> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user || !user.googleRefreshToken) {
@@ -114,96 +198,97 @@ export async function scanUserEmails(userId: string): Promise<number> {
 
   const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
 
+  // Tight query: only subject lines that explicitly mention subscription/renewal/billing
+  // Avoids pulling generic marketing, shipping, or one-time purchase emails
   const query =
-    'newer_than:3m (subject:receipt OR subject:invoice OR subject:payment OR ' +
-    'subject:order OR subject:subscription OR subject:renewal OR ' +
-    'from:billing OR from:receipts OR from:invoices OR from:noreply)';
+    'newer_than:6m (' +
+    'subject:"subscription" OR subject:"renewal" OR subject:"your receipt" OR ' +
+    'subject:"billing confirmation" OR subject:"payment confirmation" OR ' +
+    'subject:"invoice" OR subject:"auto-renew" OR subject:"recurring" OR ' +
+    'subject:"plan renewed" OR subject:"plan renewal" OR subject:"membership renewed" OR ' +
+    'subject:"membership renewal" OR subject:"charged" OR subject:"billing statement"' +
+    ')';
 
   let messages: { id?: string | null }[] = [];
   try {
-    const listRes = await gmail.users.messages.list({ userId: 'me', q: query, maxResults: 50 });
+    const listRes = await gmail.users.messages.list({
+      userId: 'me',
+      q: query,
+      maxResults: 40,
+    });
     messages = listRes.data.messages ?? [];
   } catch (err) {
     throw describeGoogleError(err);
   }
+
   if (messages.length === 0) return 0;
 
-  const bodies = await mapWithConcurrency(messages, 8, async (msg) => {
+  console.log(`[Gmail] Found ${messages.length} candidate email(s) matching subscription query`);
+
+  // Fetch full message details with limited concurrency to avoid rate limits
+  const messageDetails = await mapWithConcurrency(messages, 5, async (msg) => {
     try {
-      const res = await gmail.users.messages.get({ userId: 'me', id: msg.id!, format: 'full' });
-      return getEmailBody(res.data).substring(0, 1500);
+      const res = await gmail.users.messages.get({
+        userId: 'me',
+        id: msg.id!,
+        format: 'full',
+      });
+      return res.data;
     } catch (err) {
       console.warn(`[Gmail] Failed to fetch email ${msg.id}:`, err);
-      return '';
+      return null;
     }
   });
-  const extractedTexts = bodies.filter(Boolean);
-  if (extractedTexts.length === 0) return 0;
 
-  const combinedText = extractedTexts.join('\n\n---NEXT_EMAIL---\n\n');
-
-  const systemPrompt = `You are a receipt parsing engine. You will receive the raw text of several emails separated by "---NEXT_EMAIL---".
-Identify recurring subscriptions (look for "monthly", "yearly", "renewal", "subscription").
-Respond with a JSON object of the form {"subscriptions": [...]} where each item has:
-- name (string, merchant name)
-- price (number, amount billed in USD. If the receipt is in another currency such as NGN, EUR or GBP, convert to an estimated USD amount.)
-- billingCycle (one of: "weekly", "monthly", "quarterly", "yearly")
-- category (string, e.g. "Entertainment", "Software", "Utilities")
-If there are none, return {"subscriptions": []}.`;
-
-  let responseText = '';
-  try {
-    // JSON mode guarantees parseable JSON. No temperature: newer reasoning
-    // models (e.g. gpt-5-mini) reject non-default temperature values.
-    const completion = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: combinedText },
-      ],
-    });
-    responseText = completion.choices[0]?.message?.content ?? '{}';
-  } catch (err: any) {
-    throw new SyncError('OPENAI_ERROR', `OpenAI request failed: ${err?.message ?? err}`);
-  }
-
-  let detected: any[] = [];
-  try {
-    const parsed = JSON.parse(responseText);
-    // Accept either {"subscriptions":[...]} or a bare array
-    detected = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.subscriptions) ? parsed.subscriptions : [];
-  } catch {
-    console.error('[Gmail] Failed to parse OpenAI response:', responseText);
-    return 0;
-  }
-
-  // Case-insensitive dedupe in JS: works on every Prisma database (unlike mode: 'insensitive')
-  const existing = await prisma.subscription.findMany({ where: { userId }, select: { name: true } });
+  // Load existing subscription names for deduplication (case-insensitive)
+  const existing = await prisma.subscription.findMany({
+    where: { userId },
+    select: { name: true },
+  });
   const seen = new Set(existing.map((s) => s.name.trim().toLowerCase()));
 
   let count = 0;
-  for (const sub of detected) {
-    const name = typeof sub?.name === 'string' ? sub.name.trim() : '';
-    const price = Number(sub?.price);
-    const cycle = String(sub?.billingCycle ?? '').toLowerCase();
-    if (!name || !Number.isFinite(price) || !VALID_CYCLES.has(cycle)) continue;
 
-    const key = name.toLowerCase();
-    if (seen.has(key)) continue;
+  // Process each email individually — focused context per email gives much better accuracy
+  for (const detail of messageDetails) {
+    if (!detail) continue;
+
+    const body = getEmailBody(detail);
+    if (!body || body.length < 80) continue; // Skip near-empty / image-only emails
+
+    const emailDate = getEmailDate(detail);
+
+    const result = await classifyEmail(body, emailDate);
+    if (!result) continue;
+
+    const key = result.name.toLowerCase();
+    if (seen.has(key)) {
+      console.log(`[Gmail] Skipping duplicate: "${result.name}"`);
+      continue;
+    }
     seen.add(key);
+
+    const startDate = new Date(result.startDate);
+    const nextBillingDate = computeNextDate(startDate, result.billingCycle);
 
     await prisma.subscription.create({
       data: {
-        name,
-        price,
-        billingCycle: cycle,
-        category: sub.category || 'Other',
+        name: result.name,
+        price: result.price,
+        billingCycle: result.billingCycle,
+        category: result.category,
         status: 'active',
         detectionSource: 'email',
+        startDate,
+        lastBillingDate: startDate,
+        nextBillingDate,
         userId,
       },
     });
+
+    console.log(
+      `[Gmail] Detected: "${result.name}" $${result.price}/${result.billingCycle} (from email dated ${result.startDate})`
+    );
     count++;
   }
 

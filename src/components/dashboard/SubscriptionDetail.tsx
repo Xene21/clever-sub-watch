@@ -168,8 +168,18 @@ const SubscriptionDetail = ({ subscription, onClose }: SubscriptionDetailProps) 
                   <h3 className="font-medium">Payment History</h3>
                 </div>
                 
-                {computedHistory.length > 0 ? (
+                {subscription.detectionSource === 'email' ? (
+                  <div className="text-center py-6 space-y-1">
+                    <p className="text-muted-foreground text-sm">
+                      History isn't available for email-detected subscriptions.
+                    </p>
+                    <p className="text-muted-foreground text-xs">
+                      Connect your bank account to see real transaction history.
+                    </p>
+                  </div>
+                ) : computedHistory.length > 0 ? (
                   <div className="space-y-2">
+                    <p className="text-xs text-muted-foreground mb-3">Estimated based on billing cycle</p>
                     {computedHistory.map((payment, index) => (
                       <div 
                         key={index}

@@ -285,10 +285,23 @@ const SubscriptionDetail = () => {
         >
           <h2 className="font-display text-lg font-semibold mb-4">Payment History</h2>
 
-          {history.length === 0 ? (
+          {/* Email-detected subs only have one confirmed data point — skip synthetic history */}
+          {sub.detectionSource === 'email' ? (
+            <div className="text-center py-6 space-y-1">
+              <p className="text-muted-foreground text-sm">
+                Payment history isn't available for email-detected subscriptions.
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Connect your bank account for full transaction history.
+              </p>
+            </div>
+          ) : history.length === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-6">No payment history available.</p>
           ) : (
             <div className="space-y-2">
+              <p className="text-xs text-muted-foreground mb-3">
+                Estimated history based on billing cycle
+              </p>
               {history.map((entry, i) => (
                 <motion.div
                   key={entry.date}

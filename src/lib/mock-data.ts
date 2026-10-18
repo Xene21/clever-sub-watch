@@ -3,13 +3,17 @@ export interface Subscription {
   merchant: string;
   logo: string;
   amount: number;
-  frequency: 'monthly' | 'yearly' | 'weekly';
+  frequency: 'monthly' | 'yearly' | 'weekly' | 'quarterly';
   nextBillingDate: string;
   status: 'active' | 'paused' | 'cancelled' | 'trial';
   category: string;
   color: string;
   startDate?: string;
   lastBillingDate?: string | null;
+  billingCycleDay?: number | null;
+  detectionSource?: string | null;
+  bankName?: string | null;
+  transactionId?: string | null;
   history: { date: string; amount: number }[];
 }
 
