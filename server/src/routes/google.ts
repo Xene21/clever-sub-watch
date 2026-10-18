@@ -138,14 +138,23 @@ import { scanUserEmails } from '../lib/gmailScanner';
 
 // 4. Disconnect
 router.post('/disconnect', requireAuth, async (req: any, res) => {
+  const deleteSubs = req.body?.deleteSubscriptions !== false && req.query?.deleteSubscriptions !== 'false';
+  if (deleteSubs) {
+    await prisma.subscription.deleteMany({
+      where: {
+        userId: req.userId,
+        detectionSource: 'email',
+      },
+    });
+  }
+
   await prisma.user.update({
     where: { id: req.userId },
-
     data: {
       googleAccessToken: null,
       googleRefreshToken: null,
-      googleEmail: null
-    }
+      googleEmail: null,
+    },
   });
   res.json({ success: true });
 });

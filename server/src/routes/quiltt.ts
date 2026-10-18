@@ -232,6 +232,16 @@ router.delete('/items/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Bank account not found' });
     }
 
+    const deleteSubs = req.query.deleteSubscriptions !== 'false';
+    if (deleteSubs) {
+      await prisma.subscription.deleteMany({
+        where: {
+          connectionId: connection.id,
+          userId: req.userId,
+        },
+      });
+    }
+
     await prisma.quilttConnection.delete({ where: { id: connection.id } });
 
     res.json({ success: true });

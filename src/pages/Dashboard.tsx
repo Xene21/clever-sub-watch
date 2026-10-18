@@ -16,12 +16,25 @@ import { api } from '@/lib/api';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import {
   DollarSign, CreditCard, TrendingUp, AlertCircle,
-  Search, SlidersHorizontal, ArrowUpRight, Sparkles, Loader2
+  Search, SlidersHorizontal, ArrowUpRight, Sparkles, Loader2, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 const sortOptions = [
   { key: 'amount', label: 'Highest Spend' },
@@ -30,11 +43,27 @@ const sortOptions = [
 ] as const;
 
 const Dashboard = () => {
+  const queryClient = useQueryClient();
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'amount' | 'date' | 'name'>('amount');
 
   const { data: subscriptions = [], isLoading } = useSubscriptions();
+
+  const handleDeleteAll = async () => {
+    try {
+      const res = await fetch('/api/subscriptions', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      toast.success(`Deleted ${data.count} subscription(s)`);
+      queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+    } catch (error) {
+      toast.error('Failed to delete all subscriptions');
+    }
+  };
   const { data: userData } = useQuery<{ user: { id: string; name: string; email: string } }>({
     queryKey: ['me'],
     queryFn: async () => api.get('/auth/me'),
@@ -153,16 +182,49 @@ const Dashboard = () => {
                     {isLoading ? '—' : `${activeCount} active`}
                   </p>
                 </div>
-                <Link to="/dashboard/subscriptions">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
-                  >
-                    View all
-                    <ArrowUpRight className="w-3 h-3" />
-                  </Button>
-                </Link>
+                <div className="flex items-center gap-2">
+                  {subscriptions.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-destructive hover:bg-destructive/10 hover:text-destructive gap-1 h-7 px-2"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Delete all
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete all subscriptions?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete all <strong>{subscriptions.length}</strong> subscription(s) from your account. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleDeleteAll}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                  <Link to="/dashboard/subscriptions">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-foreground gap-1 h-7 px-2"
+                    >
+                      View all
+                      <ArrowUpRight className="w-3 h-3" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
 
               {/* Search + Sort */}

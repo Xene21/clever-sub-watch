@@ -225,6 +225,16 @@ router.delete('/items/:id', async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Mono bank account not found' });
     }
 
+    const deleteSubs = req.query.deleteSubscriptions !== 'false';
+    if (deleteSubs) {
+      await prisma.subscription.deleteMany({
+        where: {
+          monoConnectionId: connection.id,
+          userId: req.userId,
+        },
+      });
+    }
+
     await prisma.monoConnection.delete({ where: { id: connection.id } });
 
     res.json({ success: true });

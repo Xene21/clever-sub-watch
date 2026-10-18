@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
@@ -37,6 +38,7 @@ const ConnectBank = () => {
   const [gmailConnected, setGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState<string | null>(null);
   const [isSyncingGmail, setIsSyncingGmail] = useState(false);
+  const [removeSubsOnDisconnect, setRemoveSubsOnDisconnect] = useState(true);
 
   const CONNECTOR_ID = import.meta.env.VITE_QUILTT_CONNECTOR_ID as string;
 
@@ -246,17 +248,19 @@ const ConnectBank = () => {
   };
 
   // Disconnect a bank account
-  const handleDisconnect = async (item: ConnectedItem) => {
+  const handleDisconnect = async (item: ConnectedItem, deleteSubscriptions: boolean = true) => {
     try {
       const endpoint = item.type === 'mono'
-        ? `/api/mono/items/${item.id}`
-        : `/api/quiltt/items/${item.id}`;
+        ? `/api/mono/items/${item.id}?deleteSubscriptions=${deleteSubscriptions}`
+        : `/api/quiltt/items/${item.id}?deleteSubscriptions=${deleteSubscriptions}`;
       const res = await fetch(endpoint, {
         method: 'DELETE',
         credentials: 'include',
       });
       if (!res.ok) throw new Error();
-      toast.success('Bank account disconnected.');
+      toast.success(deleteSubscriptions
+        ? 'Bank disconnected and subscriptions removed.'
+        : 'Bank account disconnected.');
       setConnectedItems(prev => prev.filter(i => i.id !== item.id));
     } catch {
       toast.error('Failed to disconnect. Please try again.');
@@ -416,26 +420,40 @@ const ConnectBank = () => {
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will remove{' '}
-                              <strong>{item.institutionName ?? 'this bank'}</strong> from Subpilot
-                              and stop syncing transactions. Auto-detected subscriptions from this
-                              bank will remain in your dashboard.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDisconnect(item)}
-                              className="bg-destructive hover:bg-destructive/90"
-                            >
-                              Disconnect
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog></div></div></motion.div>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Disconnect Bank</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will remove{' '}
+                                <strong>{item.institutionName ?? 'this bank'}</strong> from Subpilot
+                                and stop syncing transactions.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="py-2">
+                              <label className="flex items-start gap-2.5 cursor-pointer text-sm text-foreground select-none">
+                                <Checkbox
+                                  checked={removeSubsOnDisconnect}
+                                  onCheckedChange={(checked) => setRemoveSubsOnDisconnect(!!checked)}
+                                  className="mt-0.5"
+                                />
+                                <div>
+                                  <span className="font-medium">Also remove subscriptions detected from this bank</span>
+                                  <p className="text-xs text-muted-foreground mt-0.5">
+                                    Recommended. Uncheck to keep these subscriptions in your dashboard.
+                                  </p>
+                                </div>
+                              </label>
+                            </div>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDisconnect(item, removeSubsOnDisconnect)}
+                                className="bg-destructive hover:bg-destructive/90"
+                              >
+                                Disconnect
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog></div></div></motion.div>
                 ))}
               </AnimatePresence>
             </div>
@@ -584,22 +602,62 @@ const ConnectBank = () => {
                         </>
                       )}
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      onClick={async () => {
-                        try {
-                          await fetch('/api/auth/google/disconnect', { method: 'POST', credentials: 'include' });
-                          setGmailConnected(false);
-                          setGmailEmail(null);
-                          toast.success('Gmail disconnected successfully.');
-                        } catch(e) {
-                          toast.error('Failed to disconnect Gmail');
-                        }
-                      }}
-                    >
-                      Disconnect
-                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                        >
+                          Disconnect
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Disconnect Gmail</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will disconnect <strong>{gmailEmail}</strong> from Subpilot.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <div className="py-2">
+                          <label className="flex items-start gap-2.5 cursor-pointer text-sm text-foreground select-none">
+                            <Checkbox
+                              checked={removeSubsOnDisconnect}
+                              onCheckedChange={(checked) => setRemoveSubsOnDisconnect(!!checked)}
+                              className="mt-0.5"
+                            />
+                            <div>
+                              <span className="font-medium">Also remove subscriptions detected from Gmail</span>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Recommended. Uncheck to keep these subscriptions in your dashboard.
+                              </p>
+                            </div>
+                          </label>
+                        </div>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={async () => {
+                              try {
+                                await fetch(`/api/auth/google/disconnect?deleteSubscriptions=${removeSubsOnDisconnect}`, { 
+                                  method: 'POST', 
+                                  credentials: 'include' 
+                                });
+                                setGmailConnected(false);
+                                setGmailEmail(null);
+                                toast.success(removeSubsOnDisconnect 
+                                  ? 'Gmail disconnected and email subscriptions removed.' 
+                                  : 'Gmail disconnected.');
+                              } catch(e) {
+                                toast.error('Failed to disconnect Gmail');
+                              }
+                            }}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            Disconnect
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </>
               ) : (
