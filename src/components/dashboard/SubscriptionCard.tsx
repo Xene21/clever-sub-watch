@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Subscription } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import { Calendar, MoreHorizontal, PauseCircle, PlayCircle, Trash2 } from 'lucide-react';
+import { Calendar, MoreHorizontal, PauseCircle, PlayCircle, Trash2, Mail, Landmark, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import BrandLogo from '@/components/dashboard/BrandLogo';
 import {
@@ -14,6 +14,34 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useState } from 'react';
+
+function SourceIndicator({ source }: { source?: string | null }) {
+  if (source === 'email') {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-blue-400/70 font-medium uppercase tracking-wider">
+        <Mail className="w-2.5 h-2.5" />
+        Email
+      </span>
+    );
+  }
+  if (source === 'quiltt' || source === 'mono') {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-emerald-400/70 font-medium uppercase tracking-wider">
+        <Landmark className="w-2.5 h-2.5" />
+        Bank
+      </span>
+    );
+  }
+  if (source === 'manual') {
+    return (
+      <span className="flex items-center gap-1 text-[10px] text-muted-foreground/50 font-medium uppercase tracking-wider">
+        <PenLine className="w-2.5 h-2.5" />
+        Manual
+      </span>
+    );
+  }
+  return null;
+}
 
 interface SubscriptionCardProps {
   subscription: Subscription;
@@ -102,9 +130,12 @@ const SubscriptionCard = ({ subscription, delay = 0, onClick }: SubscriptionCard
         <BrandLogo logo={subscription.logo} color={subscription.color} size="lg" />
         <div className="flex flex-col">
           <h3 className="font-semibold tracking-tight text-sm sm:text-base text-foreground">{subscription.merchant}</h3>
-          <div className="flex items-center gap-1.5 mt-0.5 text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-widest font-medium">
-            <Calendar className="w-3 h-3" />
-            <span>{getDaysUntil(subscription.nextBillingDate)}</span>
+          <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground/60 uppercase tracking-widest font-medium">
+              <Calendar className="w-3 h-3" />
+              <span>{getDaysUntil(subscription.nextBillingDate)}</span>
+            </div>
+            <SourceIndicator source={subscription.detectionSource} />
           </div>
         </div>
       </div>

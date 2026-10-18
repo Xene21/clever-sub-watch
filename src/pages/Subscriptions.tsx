@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
+import { Loader2, Plus, Search, MoreHorizontal, Trash2, PauseCircle, PlayCircle, Edit, ArrowDown, ArrowUp, ArrowUpDown, Mail, Landmark, PenLine } from 'lucide-react';
 
 import { AddSubscriptionForm } from '@/components/dashboard/AddSubscriptionForm';
 import BrandLogo from '@/components/dashboard/BrandLogo';
@@ -36,6 +36,34 @@ import { Badge } from '@/components/ui/badge';
 import { useSubscriptions } from '@/hooks/useSubscriptions';
 import { Subscription } from '@/lib/mock-data';
 
+
+function SourceBadge({ source }: { source?: string | null }) {
+  if (source === 'email') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-400/80 bg-blue-500/10 border border-blue-500/20 rounded-full px-1.5 py-0.5">
+        <Mail className="w-2.5 h-2.5" />
+        Email
+      </span>
+    );
+  }
+  if (source === 'quiltt' || source === 'mono') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-400/80 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-1.5 py-0.5">
+        <Landmark className="w-2.5 h-2.5" />
+        Bank
+      </span>
+    );
+  }
+  if (source === 'manual') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/60 bg-secondary/50 border border-border/40 rounded-full px-1.5 py-0.5">
+        <PenLine className="w-2.5 h-2.5" />
+        Manual
+      </span>
+    );
+  }
+  return null;
+}
 
 const SubscriptionsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -194,7 +222,10 @@ const SubscriptionsPage = () => {
                         <BrandLogo logo={sub.logo} color={sub.color} size="md" />
                         <div>
                           <h3 className="font-semibold text-base">{sub.merchant}</h3>
-                          <p className="text-xs text-muted-foreground">{sub.category}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <p className="text-xs text-muted-foreground">{sub.category}</p>
+                            <SourceBadge source={sub.detectionSource} />
+                          </div>
                         </div>
                       </div>
                       <DropdownMenu>
@@ -327,7 +358,10 @@ const SubscriptionsPage = () => {
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
                             <BrandLogo logo={sub.logo} color={sub.color} size="sm" />
-                            {sub.merchant}
+                            <div>
+                              <div>{sub.merchant}</div>
+                              <SourceBadge source={sub.detectionSource} />
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>{sub.category}</TableCell>
