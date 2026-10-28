@@ -64,11 +64,17 @@ const ConnectBank = () => {
         method: 'POST',
         credentials: 'include',
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        console.error('[Quiltt] Session token error:', res.status, errData);
+        toast.error("Couldn't initialize bank connection. Please refresh the page.");
+        return;
+      }
       const data = await res.json();
       setSessionToken(data.token);
-    } catch {
-      toast.error("Couldn't initialise bank connection. Please refresh.");
+    } catch (err) {
+      console.error('[Quiltt] Session fetch failed:', err);
+      toast.error("Couldn't initialize bank connection. Please refresh the page.");
     }
   }, []);
 
@@ -524,6 +530,8 @@ const ConnectBank = () => {
                     </Button>
                   )}
                   
+                  {/* African bank connection — temporarily disabled */}
+                  {false && (
                   <Button 
                     size="lg" 
                     variant="secondary"
@@ -534,6 +542,7 @@ const ConnectBank = () => {
                     <Globe className="w-4 h-4" />
                     Connect African Bank
                   </Button>
+                  )}
                 </div>
               )}
             </div>
