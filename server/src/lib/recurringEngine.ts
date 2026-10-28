@@ -229,6 +229,98 @@ function computeNextBillingDate(lastDate: Date, cycle: string): Date {
 }
 
 // ─────────────────────────────────────────────
+// Non-subscription blocklist
+// Transactions whose raw name matches any of these patterns are excluded
+// BEFORE the recurrence-pattern check runs, so they never surface as
+// subscriptions regardless of how regularly they appear.
+// ─────────────────────────────────────────────
+
+/**
+ * Patterns that are NEVER subscriptions:
+ *  - Bank / peer-to-peer transfers
+ *  - Loan / debt repayments
+ *  - Ride-share one-off trips (not memberships)
+ *  - Grocery / supermarket / petrol / retail shops
+ *  - ATM / cash withdrawals
+ *  - Generic "payment" descriptors
+ */
+const NON_SUBSCRIPTION_PATTERNS: RegExp[] = [
+  // Transfers & peer payments
+  /\btransfer\b/i,
+  /\btrf\b/i,
+  /\bsend money\b/i,
+  /\bwire transfer\b/i,
+  /\bzelle\b/i,
+  /\bcash app\b/i,
+  /\bvenmo\b/i,
+
+  // Repayments / loans
+  /\brepayment\b/i,
+  /\bloan repay/i,
+  /\bmypay\b/i,
+
+  // Direct-debit store-card / credit-card bill payments
+  /\bdirect debit\b/i,
+  /\bstorecrd\b/i,
+  /\bcredit card payment\b/i,
+  /\bcard payment\b/i,
+
+  // Ride-share one-off trips (keyword after brand distinguishes trip from membership)
+  /\buber\s*\*?(trip|x|pool|xl|black)\b/i,
+  /\blyft\s*\*?(airport|standard|shared|xl|lux|black)\b/i,
+  /\bbolt\s*(trip|food)\b/i,
+
+  // Grocery / supermarket / retail
+  /\bkroger\b/i,
+  /\bwhole foods\b/i,
+  /\bsafeway\b/i,
+  /\bpublix\b/i,
+  /\btrader joe/i,
+  /\baldi\b/i,
+  /\bwegmans\b/i,
+  /\bfood lion\b/i,
+  /\btesco\b/i,
+  /\bsainsbury/i,
+  /\basda\b/i,
+  /\bmorrisons?\b/i,
+  /\bwaitrose\b/i,
+  /\bmarks & spencer\b/i,
+  /\bm&s food\b/i,
+  /\blidl\b/i,
+  /\bthorntons?\b/i,          // confectionery shop, not a subscription service
+  /\bholland & barrett\b/i,
+  /\bco-?op\b/i,
+
+  // Petrol / fuel stations
+  /\bshell\b/i,
+  /\bbp\b/i,
+  /\besso\b/i,
+  /\btexaco\b/i,
+  /\bexxon\b/i,
+  /\bmobil\b/i,
+  /\bchevron\b/i,
+
+  // ATM & cash
+  /\batm\b/i,
+  /\bcash withdrawal\b/i,
+  /\bcashback\b/i,
+
+  // Generic payment descriptors
+  /\bpayment to\b/i,
+  /\bpay to\b/i,
+  /\bbill pay(ment)?\b/i,
+  /\baccount payment\b/i,
+];
+
+/**
+ * Returns true if the transaction name resembles a non-subscription
+ * (transfer, repayment, grocery run, fuel, ATM, etc.).
+ */
+function isNonSubscription(rawName: string): boolean {
+  return NON_SUBSCRIPTION_PATTERNS.some(pattern => pattern.test(rawName));
+}
+
+// ─────────────────────────────────────────────
 // Main recurring engine
 // ─────────────────────────────────────────────
 export async function runRecurringEngine(
@@ -240,9 +332,9 @@ export async function runRecurringEngine(
 
   const detectionSource = monoConnectionId ? 'mono' : 'quiltt';
 
-  // 1. Filter out pending and refund (negative amount) transactions
+  // 1. Filter out pending, refund (negative amount), and non-subscription transactions
   const debits = transactions.filter(
-    t => !t.pending && t.amount > 0
+    t => !t.pending && t.amount > 0 && !isNonSubscription(t.merchant_name || t.name)
   );
 
   // 2. Group by normalized merchant name
