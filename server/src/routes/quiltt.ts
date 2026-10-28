@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import { requireAuth, AuthRequest } from '../middleware/auth';
 import { runRecurringEngine } from '../lib/recurringEngine';
@@ -28,41 +28,61 @@ router.post('/session', async (req: AuthRequest, res) => {
     let user = await prisma.user.findUnique({ where: { id: req.userId! } });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const body: Record<string, string> = {};
-    // If we already have a Quiltt profile ID, scope the session to it.
-    // Otherwise send an empty body — Quiltt will auto-create a new profile.
-    if (user.quilttProfileId) {
-      body.userId = user.quilttProfileId;
-    }
+    /**
+     * Mint a Quiltt session token.
+     * If we have a stored profileId, scope the session to it.
+     * If Quiltt returns 409 "Profile UUID not available" (stale / wrong env),
+     * wipe the stored ID and retry once without a userId so Quiltt creates a
+     * fresh profile � then persist the new ID.
+     */
+    const mintSession = async (profileId: string | null): Promise<{ token: string; userId: string }> => {
+      const body: Record<string, string> = {};
+      if (profileId) body.userId = profileId;
 
-    const authRes = await fetch(QUILTT_AUTH_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiSecret}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
+      const authRes = await fetch(QUILTT_AUTH_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiSecret}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      });
 
-    if (!authRes.ok) {
-      const err = await authRes.text();
-      console.error('Quiltt session error:', err);
-      return res.status(500).json({ error: 'Failed to create Quiltt session' });
-    }
+      if (!authRes.ok) {
+        const errBody = await authRes.text();
+        console.error('[Quiltt] Session creation failed � status:', authRes.status, 'body:', errBody);
 
-    const { token, userId: profileId } = await authRes.json() as { token: string; userId: string };
+        // 409 means the stored profile UUID doesn't exist in this Quiltt environment.
+        // Clear it and retry once with no userId so Quiltt creates a fresh profile.
+        if (authRes.status === 409 && profileId) {
+          console.warn('[Quiltt] Stale profileId detected � clearing and retrying...');
+          await prisma.user.update({
+            where: { id: req.userId! },
+            data: { quilttProfileId: null },
+          });
+          return mintSession(null); // retry without a profileId
+        }
 
-    // Persist the profile ID if this is the first time
-    if (!user.quilttProfileId && profileId) {
+        throw new Error(`Quiltt returned ${authRes.status}: ${errBody}`);
+      }
+
+      return authRes.json() as Promise<{ token: string; userId: string }>;
+    };
+
+    const { token, userId: newProfileId } = await mintSession(user.quilttProfileId ?? null);
+
+    // Persist the profile ID whenever it changes (first time, or after a reset)
+    if (newProfileId && newProfileId !== user.quilttProfileId) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { quilttProfileId: profileId },
+        data: { quilttProfileId: newProfileId },
       });
+      console.log('[Quiltt] Stored new profileId:', newProfileId);
     }
 
     res.json({ token });
   } catch (error) {
-    console.error('Quiltt session error:', error);
+    console.error('[Quiltt] Session error:', error);
     res.status(500).json({ error: 'Failed to create Quiltt session' });
   }
 });
